@@ -1,0 +1,10 @@
+{
+  "name": "neetoform",
+  "description": "NeetoForm CLI",
+  "author": {
+    "name": "BigBinary",
+    "email": "support@bigbinary.com"
+  },
+  "homepage": "https://github.com/neetozone/neeto-form-cli",
+  "repository": "https://github.com/neetozone/neeto-form-cli"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "neetoform",
+  "owner": {
+    "name": "BigBinary",
+    "email": "support@bigbinary.com"
+  },
+  "plugins": [
+    {
+      "name": "neetoform",
+      "source": "./",
+      "description": "NeetoForm CLI"
+    }
+  ]
+}
