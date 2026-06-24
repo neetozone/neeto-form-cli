@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -169,6 +170,18 @@ func TestPrintPretty_SubmissionsShowResponsesAndUserAgent(t *testing.T) {
 			t.Errorf("pretty submissions output is missing %q.\nGot:\n%s", want, out)
 		}
 	}
+
+	for _, pattern := range []string{
+		`(?m)^  RESPONSES$`,
+		`(?m)^  USER AGENT$`,
+		`(?m)^    Email\b`,
+		`(?m)^    Full Name\b`,
+		`(?m)^    NAME\b`,
+	} {
+		if !regexp.MustCompile(pattern).MatchString(out) {
+			t.Errorf("block structure not rendered: pattern %q did not match.\nGot:\n%s", pattern, out)
+		}
+	}
 }
 
 func TestPrintPretty_FormsStillRenderAsTable(t *testing.T) {
@@ -183,6 +196,9 @@ func TestPrintPretty_FormsStillRenderAsTable(t *testing.T) {
 
 	if !strings.Contains(out, "TITLE") {
 		t.Errorf("forms list should keep the table header TITLE.\nGot:\n%s", out)
+	}
+	if !strings.Contains(out, "─") {
+		t.Errorf("forms list should render the table separator line; the block renderer never emits it.\nGot:\n%s", out)
 	}
 	if !strings.Contains(out, "Contact form") || !strings.Contains(out, "Survey") {
 		t.Errorf("forms list should show both rows.\nGot:\n%s", out)
