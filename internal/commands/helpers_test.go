@@ -4,7 +4,43 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
+
+func TestPaginationParams_DefaultsToFirstPage(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+	addPaginationFlags(cmd)
+
+	params := paginationParams(cmd)
+
+	if got := params.Get("page_number"); got != "1" {
+		t.Errorf("page_number = %q, want 1", got)
+	}
+	if got := params.Get("page_size"); got != "" {
+		t.Errorf("page_size = %q, want empty", got)
+	}
+}
+
+func TestPaginationParams_RespectsExplicitFlags(t *testing.T) {
+	cmd := &cobra.Command{Use: "test"}
+	addPaginationFlags(cmd)
+	if err := cmd.Flags().Set("page", "2"); err != nil {
+		t.Fatalf("Set(page) error = %v", err)
+	}
+	if err := cmd.Flags().Set("page-size", "50"); err != nil {
+		t.Fatalf("Set(page-size) error = %v", err)
+	}
+
+	params := paginationParams(cmd)
+
+	if got := params.Get("page_number"); got != "2" {
+		t.Errorf("page_number = %q, want 2", got)
+	}
+	if got := params.Get("page_size"); got != "50" {
+		t.Errorf("page_size = %q, want 50", got)
+	}
+}
 
 func TestReadJSONFile_Valid(t *testing.T) {
 	dir := t.TempDir()
