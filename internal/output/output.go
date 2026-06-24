@@ -173,6 +173,10 @@ func printPretty(data json.RawMessage) {
 			fmt.Println("No records found.")
 			return
 		}
+		if tableUninformative(arr) {
+			printRecordBlocks(arr)
+			return
+		}
 		printTable(arr)
 		return
 	}
@@ -279,6 +283,192 @@ func pickColumns(sample map[string]interface{}) []string {
 	}
 
 	return cols
+}
+
+func tableUninformative(rows []map[string]interface{}) bool {
+	if len(pickColumns(rows[0])) > 2 {
+		return false
+	}
+	for _, row := range rows {
+		for _, v := range row {
+			if !isScalar(v) && !isEmptyContainer(v) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isEmptyContainer(v interface{}) bool {
+	switch val := v.(type) {
+	case []interface{}:
+		return len(val) == 0
+	case map[string]interface{}:
+		return len(val) == 0
+	}
+	return false
+}
+
+func printRecordBlocks(rows []map[string]interface{}) {
+	for i, row := range rows {
+		if i > 0 {
+			fmt.Println()
+		}
+		printRecordBlock(row)
+	}
+}
+
+func printRecordBlock(row map[string]interface{}) {
+	labelWidth := 0
+	for k, v := range row {
+		if !rendersInline(v) {
+			continue
+		}
+		if l := len(formatHeader(k)); l > labelWidth {
+			labelWidth = l
+		}
+	}
+
+	for _, k := range blockFieldOrder(row) {
+		v := row[k]
+		label := formatHeader(k)
+		if rendersInline(v) {
+			fmt.Printf("  %-*s  %s\n", labelWidth, label, inlineValue(v))
+			continue
+		}
+		fmt.Printf("  %s\n", label)
+		printNested(v, "    ")
+	}
+}
+
+func blockFieldOrder(row map[string]interface{}) []string {
+	used := map[string]bool{}
+	var order []string
+
+	for _, k := range pickColumns(row) {
+		order = append(order, k)
+		used[k] = true
+	}
+
+	var scalars, nested []string
+	for k, v := range row {
+		if used[k] {
+			continue
+		}
+		if isScalar(v) {
+			scalars = append(scalars, k)
+		} else {
+			nested = append(nested, k)
+		}
+	}
+	sort.Strings(scalars)
+	sort.Strings(nested)
+
+	order = append(order, scalars...)
+	return append(order, nested...)
+}
+
+func rendersInline(v interface{}) bool {
+	switch val := v.(type) {
+	case []interface{}:
+		return !isLabelValueList(val)
+	case map[string]interface{}:
+		return len(val) == 0
+	}
+	return true
+}
+
+func inlineValue(v interface{}) string {
+	switch val := v.(type) {
+	case []interface{}:
+		if len(val) == 0 {
+			return "-"
+		}
+		if scalars, ok := scalarSlice(val); ok {
+			return strings.Join(scalars, ", ")
+		}
+		return describeValue(val)
+	case map[string]interface{}:
+		if len(val) == 0 {
+			return "-"
+		}
+		return describeValue(val)
+	default:
+		return formatValue(v)
+	}
+}
+
+func printNested(v interface{}, indent string) {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		keys := make([]string, 0, len(val))
+		for k := range val {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		width := 0
+		for _, k := range keys {
+			if l := len(formatHeader(k)); l > width {
+				width = l
+			}
+		}
+		for _, k := range keys {
+			fmt.Printf("%s%-*s  %s\n", indent, width, formatHeader(k), inlineValue(val[k]))
+		}
+	case []interface{}:
+		labels := make([]string, len(val))
+		width := 0
+		for i, item := range val {
+			obj, _ := item.(map[string]interface{})
+			labels[i] = responseLabel(obj)
+			if l := len(labels[i]); l > width {
+				width = l
+			}
+		}
+		for i, item := range val {
+			obj, _ := item.(map[string]interface{})
+			fmt.Printf("%s%-*s  %s\n", indent, width, labels[i], inlineValue(obj["value"]))
+		}
+	}
+}
+
+func isLabelValueList(v []interface{}) bool {
+	if len(v) == 0 {
+		return false
+	}
+	for _, item := range v {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			return false
+		}
+		if _, ok := obj["value"]; !ok {
+			return false
+		}
+		if responseLabel(obj) == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func responseLabel(obj map[string]interface{}) string {
+	for _, key := range []string{"label", "name", "title"} {
+		if s, ok := obj[key].(string); ok && s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func scalarSlice(v []interface{}) ([]string, bool) {
+	out := make([]string, len(v))
+	for i, item := range v {
+		if !isScalar(item) {
+			return nil, false
+		}
+		out[i] = formatValue(item)
+	}
+	return out, true
 }
 
 func calculateWidths(headers []string, grid [][]string) []int {
