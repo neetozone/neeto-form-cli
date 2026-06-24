@@ -399,6 +399,19 @@ func inlineValue(v interface{}) string {
 }
 
 func printNested(v interface{}, indent string) {
+	pairs := nestedPairs(v)
+	width := 0
+	for _, p := range pairs {
+		if len(p[0]) > width {
+			width = len(p[0])
+		}
+	}
+	for _, p := range pairs {
+		fmt.Printf("%s%-*s  %s\n", indent, width, p[0], p[1])
+	}
+}
+
+func nestedPairs(v interface{}) [][2]string {
 	switch val := v.(type) {
 	case map[string]interface{}:
 		keys := make([]string, 0, len(val))
@@ -406,30 +419,20 @@ func printNested(v interface{}, indent string) {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		width := 0
-		for _, k := range keys {
-			if l := len(formatHeader(k)); l > width {
-				width = l
-			}
+		pairs := make([][2]string, len(keys))
+		for i, k := range keys {
+			pairs[i] = [2]string{formatHeader(k), inlineValue(val[k])}
 		}
-		for _, k := range keys {
-			fmt.Printf("%s%-*s  %s\n", indent, width, formatHeader(k), inlineValue(val[k]))
-		}
+		return pairs
 	case []interface{}:
-		labels := make([]string, len(val))
-		width := 0
+		pairs := make([][2]string, len(val))
 		for i, item := range val {
 			obj, _ := item.(map[string]interface{})
-			labels[i] = responseLabel(obj)
-			if l := len(labels[i]); l > width {
-				width = l
-			}
+			pairs[i] = [2]string{responseLabel(obj), inlineValue(obj["value"])}
 		}
-		for i, item := range val {
-			obj, _ := item.(map[string]interface{})
-			fmt.Printf("%s%-*s  %s\n", indent, width, labels[i], inlineValue(obj["value"]))
-		}
+		return pairs
 	}
+	return nil
 }
 
 func isLabelValueList(v []interface{}) bool {
