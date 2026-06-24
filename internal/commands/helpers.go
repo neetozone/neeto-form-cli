@@ -57,7 +57,7 @@ func paginationParams(cmd *cobra.Command) url.Values {
 }
 
 func addPaginationFlags(cmd *cobra.Command) {
-	cmd.Flags().Int("page", 0, "Page number")
+	cmd.Flags().Int("page", 1, "Page number")
 	cmd.Flags().Int("page-size", 0, "Items per page (max 100)")
 }
 
