@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -139,6 +140,68 @@ func TestPrintWithPagination_QuietMode(t *testing.T) {
 	trimmed := strings.TrimSpace(out)
 	if trimmed != `[{"id":1}]` {
 		t.Errorf("quiet output = %q, want raw data without pagination", trimmed)
+	}
+}
+
+func TestPrintPretty_SubmissionsShowResponsesAndUserAgent(t *testing.T) {
+	data := json.RawMessage(`[
+		{
+			"id": "3ad844c3-2785-4ddf-87a4-b48195fc6360",
+			"created_at": "2026-02-09T05:20:59.464Z",
+			"field_values": [{"id": "fv1", "value": "x"}],
+			"user_agent": {"name": "Chrome", "operating_system": "macOS", "ip_address": "1.2.3.4"},
+			"responses": [
+				{"id": "r1", "label": "Email", "kind": "email", "value": "foo@bar.com"},
+				{"id": "r2", "label": "Full Name", "kind": "text", "value": "John Doe"}
+			]
+		}
+	]`)
+
+	out := captureStdout(t, func() {
+		printPretty(data)
+	})
+
+	for _, want := range []string{
+		"3ad844c3-2785-4ddf-87a4-b48195fc6360",
+		"RESPONSES", "Email", "foo@bar.com", "Full Name", "John Doe",
+		"USER AGENT", "Chrome", "macOS", "1.2.3.4",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("pretty submissions output is missing %q.\nGot:\n%s", want, out)
+		}
+	}
+
+	for _, pattern := range []string{
+		`(?m)^  RESPONSES$`,
+		`(?m)^  USER AGENT$`,
+		`(?m)^    Email\b`,
+		`(?m)^    Full Name\b`,
+		`(?m)^    NAME\b`,
+	} {
+		if !regexp.MustCompile(pattern).MatchString(out) {
+			t.Errorf("block structure not rendered: pattern %q did not match.\nGot:\n%s", pattern, out)
+		}
+	}
+}
+
+func TestPrintPretty_FormsStillRenderAsTable(t *testing.T) {
+	data := json.RawMessage(`[
+		{"id": "f1", "title": "Contact form", "state": "published", "submissions_count": 3, "created_at": "2026-02-09T05:20:59.464Z"},
+		{"id": "f2", "title": "Survey", "state": "draft", "submissions_count": 0, "created_at": "2026-02-10T05:20:59.464Z"}
+	]`)
+
+	out := captureStdout(t, func() {
+		printPretty(data)
+	})
+
+	if !strings.Contains(out, "TITLE") {
+		t.Errorf("forms list should keep the table header TITLE.\nGot:\n%s", out)
+	}
+	if !strings.Contains(out, "─") {
+		t.Errorf("forms list should render the table separator line; the block renderer never emits it.\nGot:\n%s", out)
+	}
+	if !strings.Contains(out, "Contact form") || !strings.Contains(out, "Survey") {
+		t.Errorf("forms list should show both rows.\nGot:\n%s", out)
 	}
 }
 

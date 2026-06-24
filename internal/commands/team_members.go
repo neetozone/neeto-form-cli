@@ -154,7 +154,7 @@ func init() {
 	teamMembersListCmd.Flags().String("email", "", "Filter by email address")
 
 	teamMembersCreateCmd.Flags().String("emails", "", "Comma-separated email addresses to invite")
-	teamMembersCreateCmd.Flags().String("role", "", "Organization role for the invited members")
+	teamMembersCreateCmd.Flags().String("role", "", "Organization role name for the invited members; e.g. Admin, Standard, Editor, Reviewer (case-sensitive, must match a role in your workspace)")
 	teamMembersCreateCmd.Flags().Bool("send-invitation-email", true, "Send invitation email")
 	_ = teamMembersCreateCmd.MarkFlagRequired("emails")
 	_ = teamMembersCreateCmd.MarkFlagRequired("role")
@@ -163,7 +163,7 @@ func init() {
 	teamMembersUpdateCmd.Flags().String("first-name", "", "First name")
 	teamMembersUpdateCmd.Flags().String("last-name", "", "Last name")
 	teamMembersUpdateCmd.Flags().String("time-zone", "", "Time zone")
-	teamMembersUpdateCmd.Flags().String("role", "", "Organization role")
+	teamMembersUpdateCmd.Flags().String("role", "", "Organization role name; e.g. Admin, Standard, Editor, Reviewer (case-sensitive, must match a role in your workspace)")
 
 	teamMembersCmd.AddCommand(teamMembersListCmd)
 	teamMembersCmd.AddCommand(teamMembersShowCmd)
