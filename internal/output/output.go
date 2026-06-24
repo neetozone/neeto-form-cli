@@ -290,10 +290,17 @@ func tableUninformative(rows []map[string]interface{}) bool {
 		return false
 	}
 	for _, row := range rows {
-		for _, v := range row {
-			if !isScalar(v) && !isEmptyContainer(v) {
-				return true
-			}
+		if hasNestedData(row) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNestedData(row map[string]interface{}) bool {
+	for _, v := range row {
+		if !isScalar(v) && !isEmptyContainer(v) {
+			return true
 		}
 	}
 	return false
