@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/neetozone/neeto-form-cli/internal/output"
@@ -16,10 +17,8 @@ var formsCmd = &cobra.Command{
 }
 
 func validateFormStatus(status string) error {
-	for _, valid := range validFormStatuses {
-		if status == valid {
-			return nil
-		}
+	if slices.Contains(validFormStatuses, status) {
+		return nil
 	}
 	return fmt.Errorf("invalid --status %q; valid values: %s", status, strings.Join(validFormStatuses, ", "))
 }
