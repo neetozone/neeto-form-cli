@@ -447,18 +447,22 @@ func isLabelValueList(v []interface{}) bool {
 		return false
 	}
 	for _, item := range v {
-		obj, ok := item.(map[string]interface{})
-		if !ok {
-			return false
-		}
-		if _, ok := obj["value"]; !ok {
-			return false
-		}
-		if responseLabel(obj) == "" {
+		if !isLabelValue(item) {
 			return false
 		}
 	}
 	return true
+}
+
+func isLabelValue(item interface{}) bool {
+	obj, ok := item.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	if _, ok := obj["value"]; !ok {
+		return false
+	}
+	return responseLabel(obj) != ""
 }
 
 func responseLabel(obj map[string]interface{}) string {
