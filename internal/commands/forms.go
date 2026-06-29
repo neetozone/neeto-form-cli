@@ -20,7 +20,7 @@ func validateFormStatus(status string) error {
 	if slices.Contains(validFormStatuses, status) {
 		return nil
 	}
-	return fmt.Errorf("invalid --status %q; valid values: %s", status, strings.Join(validFormStatuses, ", "))
+	return fmt.Errorf("Invalid --status %q; valid values: %s", status, strings.Join(validFormStatuses, ", "))
 }
 
 var formsListCmd = &cobra.Command{

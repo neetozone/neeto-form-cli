@@ -16,7 +16,7 @@ func TestValidateFormStatus_Invalid(t *testing.T) {
 		t.Fatal("validateFormStatus(\"pinned\") expected error, got nil")
 	}
 
-	want := `invalid --status "pinned"; valid values: active, archived, favorite`
+	want := `Invalid --status "pinned"; valid values: active, archived, favorite`
 	if err.Error() != want {
 		t.Errorf("validateFormStatus(\"pinned\") error = %q, want %q", err.Error(), want)
 	}
