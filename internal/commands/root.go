@@ -16,9 +16,12 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "neetoform",
-	Short:         "NeetoForm CLI",
-	Long:          "A command-line interface for NeetoForm.",
+	Use:   "neetoform",
+	Short: "NeetoForm CLI",
+	Long:  "A command-line interface for NeetoForm.",
+	Example: "  $ neetoform forms list\n" +
+		"  $ neetoform submissions list <form-id>\n" +
+		"  $ neetoform team-members list",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
