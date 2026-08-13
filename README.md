@@ -10,7 +10,7 @@ A command-line interface for NeetoForm.
 
 ```bash
 brew trust neetozone/tap
-brew install neetozone/homebrew-tap/neetoform
+brew install neetozone/tap/neetoform
 ```
 
 **Shell script:**
