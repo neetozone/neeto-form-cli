@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	brewFormula   = "neetozone/homebrew-tap/neetoform"
+	brewFormula   = "neetozone/tap/neetoform"
 	installShURL  = "https://neeto-downloads.s3.amazonaws.com/cli/NeetoForm/latest/install.sh"
 	installPS1URL = "https://neeto-downloads.s3.amazonaws.com/cli/NeetoForm/latest/install.ps1"
 )

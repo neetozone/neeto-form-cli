@@ -16,13 +16,13 @@ Credentials for every logged-in subdomain are stored together in
 `~/.config/neetoform/auth.json`. A command that talks to the API picks which
 subdomain to use by these rules:
 
-- 0 subdomains logged in → every credential-using command errors with
-  "not logged in. Run 'neetoform login' to authenticate".
-- 1 subdomain logged in → that one is the implicit default; `--subdomain`
+- 0 subdomains authenticated → every credential-using command errors with
+  "Not authenticated. Run 'neetoform login' to authenticate.".
+- 1 subdomain authenticated → that one is the implicit default; `--subdomain`
   may be omitted.
-- 2+ subdomains logged in → **`--subdomain <name>` is required** on every
+- 2+ subdomains authenticated → **`--subdomain <name>` is required** on every
   credential-using command, including `doctor`. The error lists every
-  logged-in subdomain so the agent can offer a choice.
+  authenticated subdomain so the agent can offer a choice.
 
 `login` / `logout` / `whoami` have dedicated behavior:
 
@@ -100,7 +100,9 @@ Use this whenever a user asks about a flag or command not covered below.
 |---|---|
 | `doctor` | Auth check + API reachability + version. Uses `--subdomain` when multiple are logged in. |
 | `version` | Print CLI version / commit / build date. |
+| `update` | Update the CLI to the latest version (auto-detects brew / shell / PowerShell install). |
 | `commands` | Emit the full command/flag catalog as JSON. |
+| `completion zsh\|bash\|fish\|powershell` | Install shell completion. `--print` emits the script instead. |
 | `setup claude` | Install NeetoForm plugin into Claude Code (`plugin.json`, hooks, this SKILL.md). |
 | `setup cursor` / `windsurf` / `copilot` / `gemini` / `codex` | Write IDE-specific NeetoForm rule files. |
 
@@ -118,9 +120,9 @@ neetoform login --subdomain acme
 Every command exits non-zero on failure and writes a single-line message to
 stderr. Common errors the agent should expect:
 
-- `not logged in. Run 'neetoform login' to authenticate` — empty credential store.
-- `multiple subdomains logged in (acme, beta); specify --subdomain` — pick one.
-- `not logged in to "foo". Logged in subdomains: acme, beta` — bad `--subdomain`.
+- `Not authenticated. Run 'neetoform login' to authenticate.` — empty credential store.
+- `Multiple subdomains authenticated (acme, beta); specify --subdomain or --all.` — pick one.
+- `Not authenticated for "foo". Authenticated subdomains: acme, beta.` — bad `--subdomain`.
 - `required flag(s) "xxx" not set` (from cobra) — missing required flag.
 - API errors come through with the server's message body; inspect the
   JSON envelope (or the `--quiet` payload) for `error` / `errors` / `notice`
@@ -128,6 +130,50 @@ stderr. Common errors the agent should expect:
 
 ## Product-specific commands
 
-This skeleton CLI does not yet ship product-specific resource commands.
-Run `neetoform commands` to see what is currently available, and
-refer to the CLI's own docs for the full command reference once it grows.
+Two resource groups. `neetoform commands` remains the authoritative, always
+current catalog; the tables below cover what ships today.
+
+### `forms`
+
+| Command | Purpose |
+|---|---|
+| `forms list [--status <s>] [--page N] [--page-size N]` | List forms, newest first. |
+| `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. |
+
+`--status` takes exactly `active`, `archived` or `favorite`; anything else is
+rejected client-side with `Invalid --status "x"; valid values: ...` before a
+request is made.
+
+A form record carries `id`, `title`, `state`, `is_published`, `is_archived`,
+`is_disabled`, `is_suspended`, `submissions_count`, `attempt_url`, `created_by`,
+`created_at` and `updated_at`. The `id` is the `<form-id>` every other command
+takes.
+
+A submission carries `id`, `created_at`, `field_values`, `user_agent` and
+`responses`. Each entry in `responses` has `label` (the question), `position`,
+`kind` (the field type, which decides the shape of `value`), `slug` and `value`.
+
+### `team-members`
+
+| Command | Purpose |
+|---|---|
+| `team-members list [--email <email>] [--page N] [--page-size N]` | List active members. `--email` matches one exact address. |
+| `team-members show <id>` | One member by UUID. |
+| `team-members create --emails <a,b> --role <name> [--send-invitation-email=false]` | Invite people. Both `--emails` and `--role` are required. |
+| `team-members update <id> [--email] [--first-name] [--last-name] [--time-zone] [--role]` | Change only the flags passed. |
+| `team-members delete <id>` | Deactivate a member. |
+
+A member record carries `id`, `email`, `first_name`, `last_name`, `time_zone`,
+`profile_image_url`, `active` and `organization_role`.
+
+`--role` must match a role in the workspace exactly, including case; `Admin` and
+`Standard` always exist. `create` is all-or-nothing, so a rejected address or
+role leaves the workspace unchanged and the call is safe to retry once fixed. An
+address that already belongs to the workspace is reactivated and its role
+overwritten. `delete` is refused when it would remove the workspace's last admin.
+
+Every command runs with the signed-in user's permissions, so a 403 means the
+user's organization role does not allow the operation rather than a bad
+credential.
+
+Full reference: https://apidocs.neetoform.com/cli-reference/overview

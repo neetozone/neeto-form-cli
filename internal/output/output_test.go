@@ -225,3 +225,59 @@ func TestPrintWithPagination_JSONEnvelope(t *testing.T) {
 		t.Error("pagination should be present in envelope")
 	}
 }
+
+func TestPickColumns_PerResource(t *testing.T) {
+	tests := []struct {
+		name   string
+		sample map[string]interface{}
+		want   []string
+	}{
+		{
+			name: "forms",
+			sample: map[string]interface{}{
+				"id": "7db4b04a", "title": "Customer feedback", "is_published": true,
+				"state": "active", "created_at": "2026-01-15T10:30:00Z",
+				"updated_at": "2026-02-02T14:45:00Z", "attempt_url": "https://acme.neetoform.com/a06b58",
+				"submissions_count": float64(128), "is_archived": false, "is_disabled": false,
+				"is_suspended": false, "created_by": "Oliver Smith",
+			},
+			want: []string{
+				"id", "title", "state", "is_published", "submissions_count",
+				"created_by", "created_at",
+			},
+		},
+		{
+			name: "team members",
+			sample: map[string]interface{}{
+				"id": "13c02be6", "email": "oliver@example.com", "first_name": "Oliver",
+				"last_name": "Smith", "time_zone": "Asia/Kolkata", "profile_image_url": nil,
+				"active": true, "organization_role": "Admin",
+			},
+			want: []string{
+				"id", "email", "first_name", "last_name", "organization_role",
+				"active", "time_zone",
+			},
+		},
+		{
+			name: "submissions",
+			sample: map[string]interface{}{
+				"id": "f1c0d5e2", "created_at": "2026-02-14T11:05:31Z",
+			},
+			want: []string{"id", "created_at"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := pickColumns(tt.sample)
+			if len(got) != len(tt.want) {
+				t.Fatalf("pickColumns() = %v, want %v", got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("pickColumns() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
