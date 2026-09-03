@@ -281,3 +281,15 @@ func TestPickColumns_PerResource(t *testing.T) {
 		})
 	}
 }
+
+func TestPickColumns_DetectsURLColumnsInLaterRows(t *testing.T) {
+	rows := []map[string]interface{}{
+		{"id": "7db4b04a", "title": "Customer feedback", "attempt_url": nil},
+		{"id": "0c1d2e3f", "title": "Onboarding", "attempt_url": "https://acme.neetoform.com/0c1d2e"},
+	}
+
+	got := strings.Join(pickColumns(rows), " ")
+	if got != "id title attempt_url" {
+		t.Fatalf("pickColumns() = %q, want %q", got, "id title attempt_url")
+	}
+}
