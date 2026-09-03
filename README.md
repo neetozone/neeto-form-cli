@@ -110,7 +110,12 @@ VERSION, runs GoReleaser, uploads artifacts to
 neetoform setup claude      # Register plugin with Claude Code
 neetoform setup cursor      # Write .cursor/rules/neetoform.mdc
 neetoform setup windsurf    # Write .windsurf/rules/neetoform.md
-neetoform setup copilot     # Append to .github/copilot-instructions.md
-neetoform setup gemini      # Append to GEMINI.md
-neetoform setup codex       # Append to AGENTS.md
+neetoform setup copilot     # Add a NeetoForm section to .github/copilot-instructions.md
+neetoform setup gemini      # Add a NeetoForm section to GEMINI.md
+neetoform setup codex       # Add a NeetoForm section to AGENTS.md
 ```
+
+Every command except `setup claude` writes into the current project directory, so
+run it from the root of the project the assistant works in. Existing content in
+those files is kept. Re-running after an upgrade replaces the NeetoForm section
+instead of adding a duplicate.
