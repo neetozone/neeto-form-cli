@@ -269,7 +269,7 @@ func TestPickColumns_PerResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := pickColumns(tt.sample)
+			got := pickColumns([]map[string]interface{}{tt.sample})
 			if len(got) != len(tt.want) {
 				t.Fatalf("pickColumns() = %v, want %v", got, tt.want)
 			}
