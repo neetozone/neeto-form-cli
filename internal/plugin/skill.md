@@ -104,7 +104,7 @@ Use this whenever a user asks about a flag or command not covered below.
 | `commands` | Emit the full command/flag catalog as JSON. |
 | `completion zsh\|bash\|fish\|powershell` | Install shell completion. `--print` emits the script instead. |
 | `setup claude` | Install NeetoForm plugin into Claude Code (`plugin.json`, hooks, this SKILL.md). |
-| `setup cursor` / `windsurf` / `copilot` / `gemini` / `codex` | Write NeetoForm rule files into the current project directory; safe to re-run. |
+| `setup cursor` / `windsurf` / `copilot` / `gemini` / `codex` | Write NeetoForm rule files into the current project directory; re-run after an upgrade to refresh them. |
 
 ## Environment variable override
 
