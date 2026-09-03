@@ -243,7 +243,7 @@ func TestPickColumns_PerResource(t *testing.T) {
 			},
 			want: []string{
 				"id", "title", "state", "is_published", "submissions_count",
-				"created_by", "created_at",
+				"created_by", "attempt_url",
 			},
 		},
 		{
@@ -269,7 +269,7 @@ func TestPickColumns_PerResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := pickColumns(tt.sample)
+			got := pickColumns([]map[string]interface{}{tt.sample})
 			if len(got) != len(tt.want) {
 				t.Fatalf("pickColumns() = %v, want %v", got, tt.want)
 			}
@@ -279,5 +279,17 @@ func TestPickColumns_PerResource(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestPickColumns_DetectsURLColumnsInLaterRows(t *testing.T) {
+	rows := []map[string]interface{}{
+		{"id": "7db4b04a", "title": "Customer feedback", "attempt_url": nil},
+		{"id": "0c1d2e3f", "title": "Onboarding", "attempt_url": "https://acme.neetoform.com/0c1d2e"},
+	}
+
+	got := strings.Join(pickColumns(rows), " ")
+	if got != "id title attempt_url" {
+		t.Fatalf("pickColumns() = %q, want %q", got, "id title attempt_url")
 	}
 }
