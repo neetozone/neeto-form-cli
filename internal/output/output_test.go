@@ -243,7 +243,7 @@ func TestPickColumns_PerResource(t *testing.T) {
 			},
 			want: []string{
 				"id", "title", "state", "is_published", "submissions_count",
-				"created_by", "created_at",
+				"created_by", "attempt_url",
 			},
 		},
 		{
