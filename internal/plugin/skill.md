@@ -121,7 +121,7 @@ Every command exits non-zero on failure and writes a single-line message to
 stderr. Common errors the agent should expect:
 
 - `Not authenticated. Run 'neetoform login' to authenticate.` — empty credential store.
-- `Multiple subdomains authenticated (acme, beta); specify --subdomain or --all.` — pick one.
+- `Multiple subdomains authenticated (acme, beta); specify --subdomain.` — pick one.
 - `Not authenticated for "foo". Authenticated subdomains: acme, beta.` — bad `--subdomain`.
 - `required flag(s) "xxx" not set` (from cobra) — missing required flag.
 - API errors come through with the server's message body; inspect the
