@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
@@ -72,10 +71,7 @@ var teamMembersCreateCmd = &cobra.Command{
 		role, _ := cmd.Flags().GetString("role")
 		sendEmail, _ := cmd.Flags().GetBool("send-invitation-email")
 
-		emails := strings.Split(emailsStr, ",")
-		for i := range emails {
-			emails[i] = strings.TrimSpace(emails[i])
-		}
+		emails := splitCSV(emailsStr)
 
 		body := map[string]interface{}{
 			"emails":                emails,

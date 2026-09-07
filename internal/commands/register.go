@@ -44,4 +44,6 @@ func paginationParams(cmd *cobra.Command) url.Values { return app.PaginationPara
 
 func addPaginationFlags(cmd *cobra.Command) { cli.AddPaginationFlags(0, cmd) }
 
+func splitCSV(value string) []string { return cli.SplitCSV(value) }
+
 func printMessage(msg string) { app.PrintMessage(msg) }
