@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/neetozone/neeto-form-cli/internal/output"
+	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
 
@@ -57,5 +57,5 @@ func init() {
 	formsListCmd.Flags().String("status", "", "Filter by status: active, archived, favorite")
 
 	formsCmd.AddCommand(formsListCmd)
-	rootCmd.AddCommand(formsCmd)
+	register(func(root *cobra.Command) { root.AddCommand(formsCmd) })
 }
