@@ -8,4 +8,4 @@ root_examples:
   - neetoform submissions list
   - neetoform team-members list
 priority_fields: [title, name, email, first_name, last_name, state, status, kind, type, organization_role, is_published, active, submissions_count, created_by, slug, time_zone, created_at]
-commons_version: main
+commons_version: 4f3a9552b98b859c6259fce5a99f3998e03e0602
