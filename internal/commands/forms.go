@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/neetozone/neeto-form-cli/internal/output"
+	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func validateFormStatus(status string) error {
 	if slices.Contains(validFormStatuses, status) {
 		return nil
 	}
-	return fmt.Errorf("Invalid --status %q; valid values: %s", status, strings.Join(validFormStatuses, ", "))
+	return fmt.Errorf("Invalid --status %q. Valid values: %s.", status, strings.Join(validFormStatuses, ", "))
 }
 
 var formsListCmd = &cobra.Command{
@@ -57,5 +57,5 @@ func init() {
 	formsListCmd.Flags().String("status", "", "Filter by status: active, archived, favorite")
 
 	formsCmd.AddCommand(formsListCmd)
-	rootCmd.AddCommand(formsCmd)
+	register(func(root *cobra.Command) { root.AddCommand(formsCmd) })
 }

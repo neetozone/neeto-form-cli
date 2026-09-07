@@ -8,7 +8,7 @@
     {
       "name": "neetoform",
       "source": "./",
-      "description": "NeetoForm CLI"
+      "description": "manage forms and submissions from the terminal"
     }
   ]
 }
