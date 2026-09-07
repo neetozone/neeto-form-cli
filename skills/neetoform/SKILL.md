@@ -141,7 +141,7 @@ current catalog; the tables below cover what ships today.
 | `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. |
 
 `--status` takes exactly `active`, `archived` or `favorite`; anything else is
-rejected client-side with `Invalid --status "x"; valid values: ...` before a
+rejected client-side with `invalid --status "x"; valid values: ...` before a
 request is made.
 
 A form record carries `id`, `title`, `state`, `is_published`, `is_archived`,
