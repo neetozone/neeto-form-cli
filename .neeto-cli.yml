@@ -2,6 +2,7 @@ pretty_name: NeetoForm
 binary_name: neetoform
 short_description: manage forms and submissions from the terminal
 long_description: A command-line interface for NeetoForm. List forms, inspect submissions, and manage team members.
+docs_url: https://apidocs.neetoform.com/cli/introduction
 api_base_path: /api/external/v2
 root_examples:
   - neetoform forms list
