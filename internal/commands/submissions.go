@@ -9,7 +9,7 @@ import (
 
 var submissionsCmd = &cobra.Command{
 	Use:   "submissions",
-	Short: "Manage form submissions",
+	Short: "View form submissions",
 }
 
 var submissionsListCmd = &cobra.Command{
