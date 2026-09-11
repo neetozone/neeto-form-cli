@@ -43,13 +43,25 @@ subdomain to use by these rules:
 | `--json` | Force JSON envelope output even on a TTY. |
 | `--quiet` | Emit only the raw payload — no envelope, no breadcrumbs. For action commands (create/update), emits just the resource identifier; `delete` emits `success`. Designed for scripting. |
 | `--toon` | Emit TOON (Token Optimized Output Notation). Preferred for feeding list/show output back to an LLM; ~30–60% fewer tokens than JSON. |
+| `--verbose` | Expand every field of every record instead of printing a table. Pretty output only. |
 
 Precedence if multiple are set: `--toon` > `--quiet` > `--json` > pretty.
+`--verbose` shapes pretty output alone, so it changes nothing under the other three.
 
 ## Output modes & response envelope
 
 **Pretty (default on a TTY)** — tables for arrays, key-value for objects,
-breadcrumbs appended. Not intended for machine consumption.
+breadcrumbs appended. Not intended for machine consumption. A field holding a
+list of `label`/`value` pairs, which is how a submission carries its answers,
+becomes one column per label, in the order the API returned them; the record's
+own fields claim their columns first and the answers fill the remaining ones, up
+to the shared renderer's column limit.
+
+A table therefore drops whatever does not fit, so re-run the command with
+`--verbose` whenever the answer being looked for is not in the table. That is
+the only pretty output carrying a later question on a long form, and the only
+one carrying a nested record field such as a submission's `user_agent`. Under
+`--json` or `--toon` every field is already there, so no re-run is needed.
 
 **JSON envelope** (non-TTY, or `--json`):
 ```json
@@ -138,7 +150,7 @@ current catalog; the tables below cover what ships today.
 | Command | Purpose |
 |---|---|
 | `forms list [--status <s>] [--page N] [--page-size N]` | List forms, newest first. |
-| `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. |
+| `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. Each question becomes a column; `--verbose` prints whole records. |
 
 `--status` takes exactly `active`, `archived` or `favorite`; anything else is
 rejected client-side with `Invalid --status "x". Valid values: ...` before a
