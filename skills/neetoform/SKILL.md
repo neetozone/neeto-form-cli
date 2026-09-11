@@ -55,9 +55,13 @@ breadcrumbs appended. Not intended for machine consumption. A field holding a
 list of `label`/`value` pairs, which is how a submission carries its answers,
 becomes one column per label, in the order the API returned them; the record's
 own fields claim their columns first and the answers fill the remaining ones, up
-to seven in total. `--verbose` drops the table and expands every field of every
-record instead, which is how to read what a table leaves out, such as a
-submission's `user_agent`.
+to the shared renderer's column limit.
+
+A table therefore drops whatever does not fit, so re-run the command with
+`--verbose` whenever the answer being looked for is not in the table. That is
+the only pretty output carrying a later question on a long form, and the only
+one carrying a nested record field such as a submission's `user_agent`. Under
+`--json` or `--toon` every field is already there, so no re-run is needed.
 
 **JSON envelope** (non-TTY, or `--json`):
 ```json
@@ -146,7 +150,7 @@ current catalog; the tables below cover what ships today.
 | Command | Purpose |
 |---|---|
 | `forms list [--status <s>] [--page N] [--page-size N]` | List forms, newest first. |
-| `forms submissions list <form-id> [--page N] [--page-size N] [--verbose]` | List completed submissions for one form. Each question is a column; `--verbose` prints whole records. |
+| `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. Each question becomes a column; `--verbose` prints whole records. |
 
 `--status` takes exactly `active`, `archived` or `favorite`; anything else is
 rejected client-side with `Invalid --status "x". Valid values: ...` before a
