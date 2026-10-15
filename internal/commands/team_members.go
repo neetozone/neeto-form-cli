@@ -25,11 +25,15 @@ var teamMembersListCmd = &cobra.Command{
 		if email, _ := cmd.Flags().GetString("email"); email != "" {
 			params.Set("email", email)
 		}
-		if sort, _ := cmd.Flags().GetString("sort"); sort != "" {
-			params.Set("sort", sort)
-		}
+		sort, _ := cmd.Flags().GetString("sort")
 		if order, _ := cmd.Flags().GetString("order"); order != "" {
 			params.Set("order", order)
+			if sort == "" {
+				sort = "created_at"
+			}
+		}
+		if sort != "" {
+			params.Set("sort", sort)
 		}
 
 		data, err := c.Get("/team-members", params)
