@@ -35,6 +35,7 @@ func validateOrder(order string) error {
 
 func setOrderParam(cmd *cobra.Command, params url.Values) error {
 	order, _ := cmd.Flags().GetString("order")
+	order = strings.ToLower(order)
 	if order == "" {
 		return nil
 	}
@@ -91,7 +92,7 @@ var formsShowCmd = &cobra.Command{
 			return err
 		}
 
-		data, err := c.Get(fmt.Sprintf("/forms/%s", args[0]), nil)
+		data, err := c.Get(fmt.Sprintf("/forms/%s", url.PathEscape(args[0])), nil)
 		if err != nil {
 			return err
 		}

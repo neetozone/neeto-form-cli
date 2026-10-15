@@ -39,3 +39,15 @@ func TestTeamMembersCreateSendsInvitedByOnlyWhenSet(t *testing.T) {
 		t.Errorf("invited_by sent without the flag: %v", got.body)
 	}
 }
+
+func TestTeamMembersListRejectsInvalidSortAndOrder(t *testing.T) {
+	for _, flags := range [][]string{{"--sort", "name"}, {"--order", "up"}} {
+		got, _, err := runCLI(t, `{"team_members":[],"pagination":{}}`, append([]string{"team-members", "list"}, flags...)...)
+		if err == nil {
+			t.Fatalf("expected error for %v", flags)
+		}
+		if got.path != "" {
+			t.Errorf("request was made to %q", got.path)
+		}
+	}
+}

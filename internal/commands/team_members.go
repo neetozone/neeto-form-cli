@@ -2,10 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
+
+var validTeamMemberSorts = []string{"created_at", "updated_at", "email", "first_name", "last_name"}
 
 var teamMembersCmd = &cobra.Command{
 	Use:   "team-members",
@@ -26,11 +30,14 @@ var teamMembersListCmd = &cobra.Command{
 			params.Set("email", email)
 		}
 		sort, _ := cmd.Flags().GetString("sort")
-		if order, _ := cmd.Flags().GetString("order"); order != "" {
-			params.Set("order", order)
-			if sort == "" {
-				sort = "created_at"
-			}
+		if sort != "" && !slices.Contains(validTeamMemberSorts, sort) {
+			return fmt.Errorf("Invalid --sort %q. Valid values: %s.", sort, strings.Join(validTeamMemberSorts, ", "))
+		}
+		if err := setOrderParam(cmd, params); err != nil {
+			return err
+		}
+		if sort == "" && params.Has("order") {
+			sort = "created_at"
 		}
 		if sort != "" {
 			params.Set("sort", sort)

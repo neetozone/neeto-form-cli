@@ -179,3 +179,13 @@ func TestFormsShowRequiresFormID(t *testing.T) {
 		t.Fatal("expected error for missing form id")
 	}
 }
+
+func TestFormsListAcceptsUppercaseOrder(t *testing.T) {
+	got, _, err := runCLI(t, `{"forms":[],"pagination":{}}`, "forms", "list", "--order", "DESC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.query.Get("order") != "desc" {
+		t.Errorf("query = %v", got.query)
+	}
+}
