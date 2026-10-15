@@ -25,6 +25,12 @@ var teamMembersListCmd = &cobra.Command{
 		if email, _ := cmd.Flags().GetString("email"); email != "" {
 			params.Set("email", email)
 		}
+		if sort, _ := cmd.Flags().GetString("sort"); sort != "" {
+			params.Set("sort", sort)
+		}
+		if order, _ := cmd.Flags().GetString("order"); order != "" {
+			params.Set("order", order)
+		}
 
 		data, err := c.Get("/team-members", params)
 		if err != nil {
@@ -77,6 +83,10 @@ var teamMembersCreateCmd = &cobra.Command{
 			"emails":                emails,
 			"organization_role":     role,
 			"send_invitation_email": sendEmail,
+		}
+
+		if invitedBy, _ := cmd.Flags().GetString("invited-by"); invitedBy != "" {
+			body["invited_by"] = invitedBy
 		}
 
 		data, err := c.Post("/team-members", body)
@@ -148,10 +158,13 @@ var teamMembersDeleteCmd = &cobra.Command{
 func init() {
 	addPaginationFlags(teamMembersListCmd)
 	teamMembersListCmd.Flags().String("email", "", "Filter by email address")
+	teamMembersListCmd.Flags().String("sort", "", "Sort field: created_at, updated_at, email, first_name or last_name")
+	teamMembersListCmd.Flags().String("order", "", "Sort direction: asc (default) or desc")
 
 	teamMembersCreateCmd.Flags().String("emails", "", "Comma-separated email addresses to invite")
 	teamMembersCreateCmd.Flags().String("role", "", "Organization role name for the invited members; e.g. Admin, Standard, Editor, Reviewer (case-sensitive, must match a role in your workspace)")
 	teamMembersCreateCmd.Flags().Bool("send-invitation-email", true, "Send invitation email")
+	teamMembersCreateCmd.Flags().String("invited-by", "", "Email of an admin to send the invitation as")
 	_ = teamMembersCreateCmd.MarkFlagRequired("emails")
 	_ = teamMembersCreateCmd.MarkFlagRequired("role")
 
