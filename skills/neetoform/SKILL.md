@@ -173,7 +173,7 @@ question order. A question the person skipped has no entry, so to build columns,
 
 | Command | Purpose |
 |---|---|
-| `team-members list [--email <email>] [--sort <field>] [--order asc\|desc] [--page N] [--page-size N]` | List active members. `--email` matches one exact address. `--sort` takes `created_at`, `updated_at`, `email`, `first_name` or `last_name`. |
+| `team-members list [--email <email>] [--sort <field>] [--order asc\|desc] [--page N] [--page-size N]` | List active members. `--email` matches one exact address. `--sort` takes `created_at`, `updated_at`, `email`, `first_name` or `last_name`; `--order` alone sorts by `created_at`. |
 | `team-members show <id>` | One member by UUID. |
 | `team-members create --emails <a,b> --role <name> [--invited-by <admin-email>] [--send-invitation-email=false]` | Invite people. Both `--emails` and `--role` are required. |
 | `team-members update <id> [--email] [--first-name] [--last-name] [--time-zone] [--role]` | Change only the flags passed. |
