@@ -149,29 +149,33 @@ current catalog; the tables below cover what ships today.
 
 | Command | Purpose |
 |---|---|
-| `forms list [--status <s>] [--page N] [--page-size N]` | List forms, newest first. |
-| `forms submissions list <form-id> [--page N] [--page-size N]` | List completed submissions for one form. Each question becomes a column; `--verbose` prints whole records. |
+| `forms list [--status <s>] [--search <words>] [--order asc\|desc] [--page N] [--page-size N]` | List forms, oldest first unless `--order desc`. `--search` keeps forms whose title contains every word, archived ones included unless `--status` narrows. |
+| `forms show <form-id>` | One form with its `questions`, in form order. |
+| `forms submissions list <form-id> [--submitted-after <date>] [--submitted-before <date>] [--order asc\|desc] [--page N] [--page-size N]` | Completed submissions, oldest first unless `--order desc`. `--submitted-after` is inclusive and `--submitted-before` exclusive; both take `YYYY-MM-DD` (midnight UTC) or a full ISO 8601 date-time. |
 
-`--status` takes exactly `active`, `archived` or `favorite`; anything else is
-rejected client-side with `Invalid --status "x". Valid values: ...` before a
-request is made.
+`--status` takes exactly `active`, `archived` or `favorite`, and `--order` exactly `asc` or
+`desc`; anything else is rejected client-side before a request is made.
 
-A form record carries `id`, `title`, `state`, `is_published`, `is_archived`,
-`is_disabled`, `is_suspended`, `submissions_count`, `attempt_url`, `created_by`,
-`created_at` and `updated_at`. The `id` is the `<form-id>` every other command
-takes.
+Leaving out `--page` returns every matching record in one response. Pass `--page` when you want
+one bounded page, such as `--order desc --page 1 --page-size 100` for the newest 100.
 
-A submission carries `id`, `created_at`, `field_values`, `user_agent` and
-`responses`. Each entry in `responses` has `label` (the question), `position`,
-`kind` (the field type, which decides the shape of `value`), `slug` and `value`.
+A form record carries `id`, `title`, `state`, `is_published`, `is_archived`, `is_disabled`,
+`is_suspended`, `submissions_count`, `attempt_url`, `created_by`, `created_at` and `updated_at`.
+`forms show` adds `questions`; each has `id`, `label`, `kind`, `slug`, `position`, `is_required`
+and `is_hidden`.
+
+A submission carries `id`, `created_at`, `field_values`, `user_agent` and `responses`. Each
+entry in `responses` has `label`, `position`, `kind`, `slug` and `value`, in the form's current
+question order. A question the person skipped has no entry, so to build columns, key answers by
+`slug` and take the column list from `forms show`.
 
 ### `team-members`
 
 | Command | Purpose |
 |---|---|
-| `team-members list [--email <email>] [--page N] [--page-size N]` | List active members. `--email` matches one exact address. |
+| `team-members list [--email <email>] [--sort <field>] [--order asc\|desc] [--page N] [--page-size N]` | List active members. `--email` matches one exact address. `--sort` takes `created_at`, `updated_at`, `email`, `first_name` or `last_name`; `--order` alone sorts by `created_at`. |
 | `team-members show <id>` | One member by UUID. |
-| `team-members create --emails <a,b> --role <name> [--send-invitation-email=false]` | Invite people. Both `--emails` and `--role` are required. |
+| `team-members create --emails <a,b> --role <name> [--invited-by <admin-email>] [--send-invitation-email=false]` | Invite people. Both `--emails` and `--role` are required. |
 | `team-members update <id> [--email] [--first-name] [--last-name] [--time-zone] [--role]` | Change only the flags passed. |
 | `team-members delete <id>` | Deactivate a member. |
 

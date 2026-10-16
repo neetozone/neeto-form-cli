@@ -22,7 +22,18 @@ var submissionsListCmd = &cobra.Command{
 			return err
 		}
 
-		data, err := c.Get(fmt.Sprintf("/forms/%s/submissions", args[0]), paginationParams(cmd))
+		params := paginationParams(cmd)
+		if after, _ := cmd.Flags().GetString("submitted-after"); after != "" {
+			params.Set("submitted_after", after)
+		}
+		if before, _ := cmd.Flags().GetString("submitted-before"); before != "" {
+			params.Set("submitted_before", before)
+		}
+		if err := setOrderParam(cmd, params); err != nil {
+			return err
+		}
+
+		data, err := c.Get(fmt.Sprintf("/forms/%s/submissions", args[0]), params)
 		if err != nil {
 			return err
 		}
@@ -36,6 +47,9 @@ var submissionsListCmd = &cobra.Command{
 
 func init() {
 	addPaginationFlags(submissionsListCmd)
+	submissionsListCmd.Flags().String("submitted-after", "", "Only submissions at or after this ISO 8601 date (YYYY-MM-DD) or date-time")
+	submissionsListCmd.Flags().String("submitted-before", "", "Only submissions before this ISO 8601 date (YYYY-MM-DD) or date-time")
+	submissionsListCmd.Flags().String("order", "", "Sort by submission time: asc (oldest first, default) or desc")
 
 	submissionsCmd.AddCommand(submissionsListCmd)
 	formsCmd.AddCommand(submissionsCmd)

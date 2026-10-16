@@ -2,10 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
+
+var validTeamMemberSorts = []string{"created_at", "updated_at", "email", "first_name", "last_name"}
 
 var teamMembersCmd = &cobra.Command{
 	Use:   "team-members",
@@ -24,6 +28,19 @@ var teamMembersListCmd = &cobra.Command{
 		params := paginationParams(cmd)
 		if email, _ := cmd.Flags().GetString("email"); email != "" {
 			params.Set("email", email)
+		}
+		sort, _ := cmd.Flags().GetString("sort")
+		if sort != "" && !slices.Contains(validTeamMemberSorts, sort) {
+			return fmt.Errorf("Invalid --sort %q. Valid values: %s.", sort, strings.Join(validTeamMemberSorts, ", "))
+		}
+		if err := setOrderParam(cmd, params); err != nil {
+			return err
+		}
+		if sort == "" && params.Has("order") {
+			sort = "created_at"
+		}
+		if sort != "" {
+			params.Set("sort", sort)
 		}
 
 		data, err := c.Get("/team-members", params)
@@ -77,6 +94,10 @@ var teamMembersCreateCmd = &cobra.Command{
 			"emails":                emails,
 			"organization_role":     role,
 			"send_invitation_email": sendEmail,
+		}
+
+		if invitedBy, _ := cmd.Flags().GetString("invited-by"); invitedBy != "" {
+			body["invited_by"] = invitedBy
 		}
 
 		data, err := c.Post("/team-members", body)
@@ -148,10 +169,13 @@ var teamMembersDeleteCmd = &cobra.Command{
 func init() {
 	addPaginationFlags(teamMembersListCmd)
 	teamMembersListCmd.Flags().String("email", "", "Filter by email address")
+	teamMembersListCmd.Flags().String("sort", "", "Sort field: created_at, updated_at, email, first_name or last_name")
+	teamMembersListCmd.Flags().String("order", "", "Sort direction: asc (default) or desc")
 
 	teamMembersCreateCmd.Flags().String("emails", "", "Comma-separated email addresses to invite")
 	teamMembersCreateCmd.Flags().String("role", "", "Organization role name for the invited members; e.g. Admin, Standard, Editor, Reviewer (case-sensitive, must match a role in your workspace)")
 	teamMembersCreateCmd.Flags().Bool("send-invitation-email", true, "Send invitation email")
+	teamMembersCreateCmd.Flags().String("invited-by", "", "Email of an admin to send the invitation as")
 	_ = teamMembersCreateCmd.MarkFlagRequired("emails")
 	_ = teamMembersCreateCmd.MarkFlagRequired("role")
 
