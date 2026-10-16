@@ -1,6 +1,9 @@
 package commands
 
-import "testing"
+import (
+	"net/url"
+	"testing"
+)
 
 func TestSubmissionsListSendsDateFiltersAndOrder(t *testing.T) {
 	got, _, err := runCLI(t, `{"submissions":[],"pagination":{}}`,
@@ -12,15 +15,13 @@ func TestSubmissionsListSendsDateFiltersAndOrder(t *testing.T) {
 	if got.path != "/api/external/v2/forms/form-1/submissions" {
 		t.Errorf("path = %q", got.path)
 	}
-	want := map[string]string{
-		"submitted_after":  "2026-10-12",
-		"submitted_before": "2026-10-13T00:00:00+05:30",
-		"order":            "desc",
+	want := url.Values{
+		"submitted_after":  {"2026-10-12"},
+		"submitted_before": {"2026-10-13T00:00:00+05:30"},
+		"order":            {"desc"},
 	}
-	for key, value := range want {
-		if got.query.Get(key) != value {
-			t.Errorf("%s = %q, want %q", key, got.query.Get(key), value)
-		}
+	if got.query.Encode() != want.Encode() {
+		t.Errorf("query = %v, want %v", got.query, want)
 	}
 }
 
@@ -29,10 +30,8 @@ func TestSubmissionsListOmitsUnsetFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"submitted_after", "submitted_before", "order"} {
-		if got.query.Has(key) {
-			t.Errorf("unexpected %s in %v", key, got.query)
-		}
+	if len(got.query) != 0 {
+		t.Errorf("query = %v, want empty", got.query)
 	}
 }
 

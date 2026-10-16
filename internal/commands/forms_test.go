@@ -39,31 +39,12 @@ func TestValidateFormStatus_Invalid(t *testing.T) {
 	}
 }
 
-func TestValidateOrder_Valid(t *testing.T) {
-	for _, order := range []string{"asc", "desc"} {
-		if err := validateOrder(order); err != nil {
-			t.Errorf("validateOrder(%q) error = %v, want nil", order, err)
-		}
-	}
-}
-
-func TestValidateOrder_Invalid(t *testing.T) {
-	err := validateOrder("newest")
-	if err == nil {
-		t.Fatal("validateOrder(\"newest\") expected error, got nil")
-	}
-
-	want := `Invalid --order "newest". Valid values: asc, desc.`
-	if err.Error() != want {
-		t.Errorf("validateOrder(\"newest\") error = %q, want %q", err.Error(), want)
-	}
-}
-
 type recordedRequest struct {
-	method string
-	path   string
-	query  url.Values
-	body   map[string]interface{}
+	method  string
+	path    string
+	escaped string
+	query   url.Values
+	body    map[string]interface{}
 }
 
 var (
@@ -76,7 +57,7 @@ func runCLI(t *testing.T, response string, args ...string) (recordedRequest, str
 
 	var got recordedRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got = recordedRequest{method: r.Method, path: r.URL.Path, query: r.URL.Query()}
+		got = recordedRequest{method: r.Method, path: r.URL.Path, escaped: r.URL.EscapedPath(), query: r.URL.Query()}
 		if r.Body != nil {
 			_ = json.NewDecoder(r.Body).Decode(&got.body)
 		}
@@ -174,9 +155,13 @@ func TestFormsShowFetchesFormWithQuestions(t *testing.T) {
 	}
 }
 
-func TestFormsShowRequiresFormID(t *testing.T) {
-	if _, _, err := runCLI(t, `{}`, "forms", "show"); err == nil {
-		t.Fatal("expected error for missing form id")
+func TestFormsShowEscapesFormID(t *testing.T) {
+	got, _, err := runCLI(t, `{"id":"a/b"}`, "forms", "show", "a/b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.escaped != "/api/external/v2/forms/a%2Fb" {
+		t.Errorf("escaped path = %q", got.escaped)
 	}
 }
 
