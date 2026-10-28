@@ -19,6 +19,18 @@ func TestAutomationRulesListSendsSearch(t *testing.T) {
 	}
 }
 
+func TestAutomationRulesCreateTakesNameFromFile(t *testing.T) {
+	file := writeJSONFile(t, `{"name":"From file"}`)
+	got, _, err := runCLI(t, `{"automation_rule":{"id":"r1"}}`, "forms", "automation-rules", "create", "form-1", "--json-file", file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"automation_rule": map[string]any{"name": "From file"}}
+	if !reflect.DeepEqual(got.body, want) {
+		t.Errorf("body = %v", got.body)
+	}
+}
+
 func TestAutomationRulesCreateMergesFlagsOverFile(t *testing.T) {
 	file := writeJSONFile(t, `{"name":"From file","actions":[{"name":"email_to_form_creator"}],"execution_delay":{"value":3}}`)
 	got, _, err := runCLI(t, `{"automation_rule":{"id":"r1"}}`, "forms", "automation-rules", "create", "form-1",

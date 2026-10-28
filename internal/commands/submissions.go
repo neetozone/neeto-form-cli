@@ -42,14 +42,8 @@ var submissionsListCmd = &cobra.Command{
 	},
 }
 
-var submissionsDeleteCmd = &cobra.Command{
-	Use:   "delete <form-id> <submission-id>",
-	Short: "Move a submission to the trash",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return sendAndPrint(cmd, http.MethodDelete, formPath(args[0], "submissions", args[1]), nil, printActionResult)
-	},
-}
+var submissionsDeleteCmd = deleteCmd("delete <form-id> <submission-id>", "Move a submission to the trash", 2,
+	func(args []string) string { return formPath(args[0], "submissions", args[1]) }, "Submission moved to the trash.")
 
 var submissionsBulkDeleteCmd = &cobra.Command{
 	Use:   "bulk-delete <form-id>",

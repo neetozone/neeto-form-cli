@@ -37,29 +37,18 @@ var messageTemplatesListCmd = &cobra.Command{
 	},
 }
 
-func saveMessageTemplate(method string, render printer) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
-		if err := validateMessageTemplateFlags(cmd); err != nil {
-			return err
-		}
-		body := map[string]any{"message_template": flagValues(cmd, "name", "type=template_type", "body", "subject", "status")}
-		return sendAndPrint(cmd, method, formResource("message_templates")(args), body, render)
+func messageTemplateBody(cmd *cobra.Command) (map[string]any, error) {
+	if err := validateMessageTemplateFlags(cmd); err != nil {
+		return nil, err
 	}
+	return map[string]any{"message_template": flagValues(cmd, "name", "type=template_type", "body", "subject", "status")}, nil
 }
 
-var messageTemplatesCreateCmd = &cobra.Command{
-	Use:   "create <form-id>",
-	Short: "Create a message template",
-	Args:  cobra.ExactArgs(1),
-	RunE:  saveMessageTemplate(http.MethodPost, printActionResult),
-}
+var messageTemplatesCreateCmd = saveCmd("create <form-id>", "Create a message template", 1, http.MethodPost,
+	formResource("message_templates"), printActionResult, messageTemplateBody)
 
-var messageTemplatesUpdateCmd = &cobra.Command{
-	Use:   "update <form-id> <id>",
-	Short: "Update a message template",
-	Args:  cobra.ExactArgs(2),
-	RunE:  saveMessageTemplate(http.MethodPatch, printResource),
-}
+var messageTemplatesUpdateCmd = saveCmd("update <form-id> <id>", "Update a message template", 2, http.MethodPatch,
+	formResource("message_templates"), printResource, messageTemplateBody)
 
 func validateMessageTemplateFlags(cmd *cobra.Command) error {
 	if err := validateEnum("type", flagString(cmd, "type"), validMessageTemplateTypes); err != nil {

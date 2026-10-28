@@ -138,7 +138,8 @@ func init() {
 		formsCmd.AddCommand(group.command())
 	}
 
-	formDiscountCodesUpdateCmd.Flags().String("ids", "", "Comma-separated UUIDs of the discount codes the form accepts; omit to clear all")
+	formDiscountCodesUpdateCmd.Flags().String("ids", "", "Comma-separated UUIDs of the discount codes the form accepts; pass an empty value to clear all")
+	markFlagsRequired(formDiscountCodesUpdateCmd, "ids")
 	formDiscountCodesCmd.AddCommand(
 		listCmd("list <form-id>", "List discount codes and whether the form accepts each", 1, formResource("discount_codes"), "discount_codes", []output.Breadcrumb{
 			{Label: "Update", Command: "neetoform forms discount-codes update <form-id> --ids <code-id>"},

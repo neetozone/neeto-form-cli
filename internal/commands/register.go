@@ -50,4 +50,8 @@ func printMessage(msg string) { app.PrintMessage(msg) }
 
 func markFlagsRequired(cmd *cobra.Command, names ...string) { cli.MarkFlagsRequired(cmd, names...) }
 
+func allowJSONFileToSatisfyRequiredFlags(cmd *cobra.Command) {
+	cli.AllowJSONFileToSatisfyRequiredFlags(cmd)
+}
+
 func readJSONFile(path string) (map[string]any, error) { return cli.ReadJSONFile(path) }

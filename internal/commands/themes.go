@@ -35,28 +35,9 @@ func themeBody(cmd *cobra.Command) (map[string]any, error) {
 	return map[string]any{"theme": theme}, nil
 }
 
-func saveTheme(method string, render printer, path argsPath) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
-		body, err := themeBody(cmd)
-		if err != nil {
-			return err
-		}
-		return sendAndPrint(cmd, method, path(args), body, render)
-	}
-}
+var themesCreateCmd = saveCmd("create", "Create a theme", 0, http.MethodPost, workspaceResource("themes"), printActionResult, themeBody)
 
-var themesCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a theme",
-	RunE:  saveTheme(http.MethodPost, printActionResult, func([]string) string { return apiPath("themes") }),
-}
-
-var themesUpdateCmd = &cobra.Command{
-	Use:   "update <id>",
-	Short: "Update a theme",
-	Args:  cobra.ExactArgs(1),
-	RunE:  saveTheme(http.MethodPatch, printResource, workspaceResource("themes")),
-}
+var themesUpdateCmd = saveCmd("update <id>", "Update a theme", 1, http.MethodPatch, workspaceResource("themes"), printResource, themeBody)
 
 var formThemeUpdateCmd = &cobra.Command{
 	Use:   "update <form-id>",

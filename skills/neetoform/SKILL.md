@@ -221,7 +221,7 @@ settings edits change the draft; run `forms publish` for respondents to see them
 | Command | Purpose |
 |---|---|
 | `forms conditions list\|show\|delete\|clone <form-id> [<id>]` | Show/hide, calculation and thank-you-page conditions. |
-| `forms conditions create\|update <form-id> [<id>] --json-file <file> [--enabled]` | File holds `{"conditions":[...],"actions":[...]}`; both lists are replaced as a whole on update. |
+| `forms conditions create\|update <form-id> [<id>] --json-file <file> [--enabled]` | File holds `{"conditions":{"join_type":"and","items":[...]},"actions":{"items":[...]}}`, both objects, not arrays; each is replaced as a whole on update. |
 | `forms conditions reorder <form-id> --ids a,b` | Every condition id in the new order. |
 | `forms automation-rules list <form-id> [--search T]`, `show\|delete\|clone <form-id> <id>`, `reorder <form-id> --ids a,b` | Manage rules. |
 | `forms automation-rules create\|update <form-id> [<id>] --name N [--description] [--status enabled\|disabled] [--performer any\|<role>] [--events submission_created,custom_field_updated] [--delay-value N --delay-unit minutes\|hours\|days] [--json-file <file>]` | Rule `conditions` and `actions` come from the file. Actions email, text and call endpoints on real submissions. `show` never returns API action header values, so resend them on update. |
@@ -236,7 +236,7 @@ settings edits change the draft; run `forms publish` for respondents to see them
 | `availability show\|update [--method enable\|disable\|based_on_submission_count\|based_on_time\|based_on_limit_and_time] [--deadline] [--limit] [--closed-message]` | Open, close, deadline, limit. |
 | `access-control show\|update --auth no\|basic\|email\|session\|invited [--password] [--allowed-keywords a,b]` | Gate the form. The password is never returned. |
 | `access-control-invitations list\|create\|delete --emails a,b` | Invitee list for `--auth invited`. No email is sent. |
-| `discount-codes list\|update [--ids a,b]` | Which workspace codes the form accepts. `update` replaces the list; no `--ids` clears it. |
+| `discount-codes list\|update [--ids a,b]` | Which workspace codes the form accepts. `update` replaces the list and requires `--ids`; `--ids=` clears it. |
 | `tracking-codes show\|update [--google-analytics] [--google-tag-manager] [--meta-pixel]` | Pass `""` to remove one. |
 | `neeto-chat show\|update --enabled=<bool>` | NeetoChat widget. |
 | `message-templates list [--type email\|sms] [--status active\|inactive]`, `show\|delete <id>`, `create --name --type --body [--subject] [--status]`, `update <id>` | Email and SMS templates. |
@@ -247,7 +247,7 @@ settings edits change the draft; run `forms publish` for respondents to see them
 
 | Command | Purpose |
 |---|---|
-| `forms share show <form-id> [--embed inline\|floating-popup\|element-popup\|iframe]` | Links, QR and embed codes; `--embed` prints one snippet. Links work only on a published form. |
+| `forms share show <form-id> [--embed inline\|floating-popup\|element-popup\|iframe]` | Public link, custom domain links and embed codes; `--embed` prints one snippet. Links work only on a published form. |
 | `forms public-link update <form-id> [--public-link-id <slug>]` | New public link; the old URL stops working at once, so read `share show` first. |
 | `forms prefilled-links create <form-id> --answer <question-id>=<value>... [--answers-json '<array>'] [--discount-code C]` | Build a prefilled URL. Nothing is saved. Option labels must match exactly. |
 | `forms email-invitations create <form-id> --emails a,b [--subject] [--body] [--button-text] [--reply-to] [--from] [--send-at <iso>]` | Emails real people. Confirm recipients and never retry a success. |

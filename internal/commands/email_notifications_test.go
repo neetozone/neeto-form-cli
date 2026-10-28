@@ -32,7 +32,7 @@ func TestEmailNotificationsUpdateSendsRespondentFields(t *testing.T) {
 
 func TestEmailNotificationsShowRejectsUnknownKind(t *testing.T) {
 	got, _, err := runCLI(t, `{}`, "forms", "email-notifications", "show", "f1", "team")
-	if err == nil || err.Error() != `Invalid --kind "team". Valid values: admin, respondent.` {
+	if err == nil || err.Error() != `Invalid kind "team". Valid values: admin, respondent.` {
 		t.Fatalf("error = %v", err)
 	}
 	if got.path != "" {

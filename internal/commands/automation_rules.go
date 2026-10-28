@@ -57,6 +57,7 @@ func init() {
 		addRuleFlags(save)
 		if verb == "create" {
 			markFlagsRequired(save, "name")
+			allowJSONFileToSatisfyRequiredFlags(save)
 		}
 		group.AddCommand(save)
 	}

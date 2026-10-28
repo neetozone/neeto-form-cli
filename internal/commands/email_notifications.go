@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -49,7 +52,10 @@ var emailNotificationsUpdateCmd = &cobra.Command{
 }
 
 func validateEmailNotificationKind(kind string) error {
-	return validateEnum("kind", kind, validEmailNotificationKinds)
+	if slices.Contains(validEmailNotificationKinds, kind) {
+		return nil
+	}
+	return fmt.Errorf("Invalid kind %q. Valid values: %s.", kind, strings.Join(validEmailNotificationKinds, ", "))
 }
 
 func init() {

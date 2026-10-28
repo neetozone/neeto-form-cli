@@ -43,20 +43,13 @@ func formResource(segment string) argsPath {
 	}
 }
 
-func exactArgs(n int) cobra.PositionalArgs {
-	if n == 0 {
-		return nil
-	}
-	return cobra.ExactArgs(n)
-}
-
-func showCmd(use, short string, nargs int, path argsPath) *cobra.Command {
+func showCmd(use, short string, nargs int, path argsPath, querySpecs ...string) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,
 		Short: short,
-		Args:  exactArgs(nargs),
+		Args:  cobra.ExactArgs(nargs),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := fetch(cmd, path(args[:nargs]), nil)
+			data, err := fetch(cmd, path(args), queryValues(cmd, url.Values{}, querySpecs...))
 			if err != nil {
 				return err
 			}
@@ -70,9 +63,9 @@ func listCmd(use, short string, nargs int, path argsPath, key string, breadcrumb
 	list := &cobra.Command{
 		Use:   use,
 		Short: short,
-		Args:  exactArgs(nargs),
+		Args:  cobra.ExactArgs(nargs),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := fetch(cmd, path(args[:nargs]), queryValues(cmd, paginationParams(cmd), querySpecs...))
+			data, err := fetch(cmd, path(args), queryValues(cmd, paginationParams(cmd), querySpecs...))
 			if err != nil {
 				return err
 			}
@@ -84,13 +77,36 @@ func listCmd(use, short string, nargs int, path argsPath, key string, breadcrumb
 	return list
 }
 
+func saveCmd(use, short string, nargs int, method string, path argsPath, render printer, build func(cmd *cobra.Command) (map[string]any, error)) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.ExactArgs(nargs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			body, err := build(cmd)
+			if err != nil {
+				return err
+			}
+			return sendAndPrint(cmd, method, path(args), body, render)
+		},
+	}
+}
+
 func deleteCmd(use, short string, nargs int, path argsPath, message string) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,
 		Short: short,
-		Args:  exactArgs(nargs),
+		Args:  cobra.ExactArgs(nargs),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return removeAndConfirm(cmd, path(args[:nargs]), nil, message)
+			c, err := getClient(cmd)
+			if err != nil {
+				return err
+			}
+			if err := c.Delete(path(args)); err != nil {
+				return err
+			}
+			printMessage(message)
+			return nil
 		},
 	}
 }
@@ -239,17 +255,5 @@ func sendAndPrint(cmd *cobra.Command, method, path string, body any, render prin
 		return err
 	}
 	render(data, nil)
-	return nil
-}
-
-func removeAndConfirm(cmd *cobra.Command, path string, params url.Values, message string) error {
-	c, err := getClient(cmd)
-	if err != nil {
-		return err
-	}
-	if err := c.DeleteWithParams(path, params); err != nil {
-		return err
-	}
-	printMessage(message)
 	return nil
 }

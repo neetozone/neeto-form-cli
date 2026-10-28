@@ -42,7 +42,12 @@ var shareShowCmd = &cobra.Command{
 		if err := json.Unmarshal(data, &share); err != nil {
 			return err
 		}
-		printMessage(share.EmbedCodes[strings.ReplaceAll(embed, "-", "_")])
+		snippet := share.EmbedCodes[strings.ReplaceAll(embed, "-", "_")]
+		if app.Printer.Quiet {
+			_, err := fmt.Fprintln(app.Printer.Out, snippet)
+			return err
+		}
+		printMessage(snippet)
 		return nil
 	},
 }

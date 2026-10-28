@@ -32,6 +32,16 @@ func TestWebhooksCreateOmitsEventsWhenNotGiven(t *testing.T) {
 	}
 }
 
+func TestWebhooksListRejectsAFormID(t *testing.T) {
+	got, _, err := runCLI(t, `{"webhooks":[]}`, "webhooks", "list", "f1")
+	if err == nil || err.Error() != "accepts 0 arg(s), received 1" {
+		t.Fatalf("error = %v", err)
+	}
+	if got.path != "" {
+		t.Errorf("request was sent to %q", got.path)
+	}
+}
+
 func TestWebhooksCreateRejectsUnknownEvent(t *testing.T) {
 	got, _, err := runCLI(t, `{}`, "webhooks", "create", "--endpoint", "https://example.com/hook", "--events", "delete")
 	if err == nil || err.Error() != `Invalid --events "delete". Valid values: submit.` {

@@ -83,21 +83,6 @@ func newFormActionCmd(verb, short, method string, segment string) *cobra.Command
 	}
 }
 
-var formsCountsCmd = &cobra.Command{
-	Use:   "counts",
-	Short: "Count forms by status",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, apiPath("forms", "counts"), nil)
-		if err != nil {
-			return err
-		}
-
-		printResource(data, nil)
-		return nil
-	},
-}
-
 var formsTransferCmd = &cobra.Command{
 	Use:   "transfer <form-id>...",
 	Short: "Transfer forms to another workspace",
@@ -135,7 +120,7 @@ func init() {
 		newFormActionCmd("clone", "Clone a form", http.MethodPost, "clone"),
 		newFormActionCmd("publish", "Publish a form's draft", http.MethodPatch, "publish"),
 		newFormActionCmd("reset", "Reset a form's draft to its published version", http.MethodPatch, "reset"),
-		formsCountsCmd,
+		showCmd("counts", "Count forms by status", 0, func([]string) string { return apiPath("forms", "counts") }),
 		formsTransferCmd,
 	)
 }

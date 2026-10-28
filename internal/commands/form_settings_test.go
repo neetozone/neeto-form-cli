@@ -1,6 +1,9 @@
 package commands
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestUniqueSubmissionUpdateSendsMethodAndQuestion(t *testing.T) {
 	got, _, err := runCLI(t, `{"unique_submission":{}}`, "forms", "unique-submission", "update", "f1", "--method", "record_track", "--question-id", "q1")
@@ -127,8 +130,15 @@ func TestFormDiscountCodesUpdateSendsIds(t *testing.T) {
 	}
 }
 
-func TestFormDiscountCodesUpdateWithoutIdsClearsAll(t *testing.T) {
-	got, _, err := runCLI(t, `{"enabled_discount_code_ids":[]}`, "forms", "discount-codes", "update", "f1")
+func TestFormDiscountCodesUpdateWithoutIdsIsRefused(t *testing.T) {
+	_, _, err := runCLI(t, `{"enabled_discount_code_ids":[]}`, "forms", "discount-codes", "update", "f1")
+	if err == nil || !strings.Contains(err.Error(), `required flag(s) "ids" not set`) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestFormDiscountCodesUpdateWithEmptyIdsClearsAll(t *testing.T) {
+	got, _, err := runCLI(t, `{"enabled_discount_code_ids":[]}`, "forms", "discount-codes", "update", "f1", "--ids=")
 	if err != nil {
 		t.Fatal(err)
 	}

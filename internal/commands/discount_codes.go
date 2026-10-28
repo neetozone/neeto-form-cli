@@ -2,7 +2,6 @@ package commands
 
 import (
 	"net/http"
-	"net/url"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
@@ -17,19 +16,15 @@ var discountCodesCmd = &cobra.Command{
 	Short: "Manage discount codes",
 }
 
-func newDiscountCodeSaveCmd(use, short string, nargs int, method string, render printer) *cobra.Command {
-	save := &cobra.Command{
-		Use:   use,
-		Short: short,
-		Args:  exactArgs(nargs),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateEnum("kind", flagString(cmd, "kind"), validDiscountKinds); err != nil {
-				return err
-			}
-			body := map[string]any{"discount_code": flagValues(cmd, discountCodeBodySpecs...)}
-			return sendAndPrint(cmd, method, workspaceResource("discount_codes")(args[:nargs]), body, render)
-		},
+func discountCodeBody(cmd *cobra.Command) (map[string]any, error) {
+	if err := validateEnum("kind", flagString(cmd, "kind"), validDiscountKinds); err != nil {
+		return nil, err
 	}
+	return map[string]any{"discount_code": flagValues(cmd, discountCodeBodySpecs...)}, nil
+}
+
+func newDiscountCodeSaveCmd(use, short string, nargs int, method string, render printer) *cobra.Command {
+	save := saveCmd(use, short, nargs, method, workspaceResource("discount_codes"), render, discountCodeBody)
 	save.Flags().String("code", "", "Code customers enter, 3 to 30 characters without spaces")
 	save.Flags().String("value", "", "Discount value; a percentage up to 100 or a fixed amount")
 	save.Flags().String("kind", "", "Discount kind: percentage (default) or fixed")
@@ -40,22 +35,10 @@ func newDiscountCodeSaveCmd(use, short string, nargs int, method string, render 
 	return save
 }
 
-var discountCodesReportCmd = &cobra.Command{
-	Use:   "report <discount-code-id>",
-	Short: "Show the redemption report of a discount code",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		params := queryValues(cmd, url.Values{}, "start-date", "end-date")
-		data, err := fetch(cmd, apiPath("discount_codes", args[0], "report"), params)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
-	},
-}
-
 func init() {
+	discountCodesReportCmd := showCmd("report <discount-code-id>", "Show the redemption report of a discount code", 1,
+		func(args []string) string { return apiPath("discount_codes", args[0], "report") }, "start-date", "end-date")
+
 	createCmd := newDiscountCodeSaveCmd("create", "Create a discount code", 0, http.MethodPost, printActionResult)
 	markFlagsRequired(createCmd, "code", "value")
 

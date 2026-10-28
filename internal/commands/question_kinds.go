@@ -10,6 +10,7 @@ var questionKindsCmd = &cobra.Command{
 var questionKindsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List question kinds",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		data, err := fetch(cmd, apiPath("question_kinds"), nil)
 		if err != nil {

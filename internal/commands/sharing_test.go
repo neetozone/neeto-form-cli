@@ -26,6 +26,16 @@ func TestShareShowPrintsOnlyChosenEmbed(t *testing.T) {
 	}
 }
 
+func TestShareShowEmbedWithQuietPrintsOnlyTheSnippet(t *testing.T) {
+	_, out, err := runCLI(t, `{"embed_codes":{"iframe":"<iframe></iframe>"}}`, "forms", "share", "show", "f1", "--embed", "iframe", "--quiet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "<iframe></iframe>\n" {
+		t.Errorf("output = %q", out)
+	}
+}
+
 func TestShareShowRejectsInvalidEmbed(t *testing.T) {
 	got, _, err := runCLI(t, `{}`, "forms", "share", "show", "f1", "--embed", "banner")
 	if err == nil || err.Error() != `Invalid --embed "banner". Valid values: inline, floating-popup, element-popup, iframe.` {

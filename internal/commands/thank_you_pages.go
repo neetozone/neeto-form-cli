@@ -20,19 +20,15 @@ var thankYouPagesCmd = &cobra.Command{
 	Short: "Manage a form's thank-you pages",
 }
 
-func newThankYouPageSaveCmd(use, short string, nargs int, method string, render printer) *cobra.Command {
-	save := &cobra.Command{
-		Use:   use,
-		Short: short,
-		Args:  cobra.ExactArgs(nargs),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateEnum("kind", flagString(cmd, "kind"), validThankYouKinds); err != nil {
-				return err
-			}
-			body := map[string]any{"thank_you_page": flagValues(cmd, thankYouPageSpecs...)}
-			return sendAndPrint(cmd, method, formResource("thank_you_pages")(args), body, render)
-		},
+func thankYouPageBody(cmd *cobra.Command) (map[string]any, error) {
+	if err := validateEnum("kind", flagString(cmd, "kind"), validThankYouKinds); err != nil {
+		return nil, err
 	}
+	return map[string]any{"thank_you_page": flagValues(cmd, thankYouPageSpecs...)}, nil
+}
+
+func newThankYouPageSaveCmd(use, short string, nargs int, method string, render printer) *cobra.Command {
+	save := saveCmd(use, short, nargs, method, formResource("thank_you_pages"), render, thankYouPageBody)
 	save.Flags().String("title", "", "Page title")
 	save.Flags().String("description", "", "Page description")
 	save.Flags().String("kind", "", "custom_message or redirect_to_url")

@@ -19,12 +19,11 @@ var formWebhooksCmd = &cobra.Command{
 	Short: "Manage a form's webhooks",
 }
 
-func createWebhook(cmd *cobra.Command, path string) error {
+func webhookBody(cmd *cobra.Command) (map[string]any, error) {
 	if err := validateEnumList("events", splitCSV(flagString(cmd, "events")), validWebhookEvents); err != nil {
-		return err
+		return nil, err
 	}
-	body := flagValues(cmd, "endpoint", "events[]", "secret")
-	return sendAndPrint(cmd, http.MethodPost, path, map[string]any{"webhook": body}, printActionResult)
+	return map[string]any{"webhook": flagValues(cmd, "endpoint", "events[]", "secret")}, nil
 }
 
 func init() {
@@ -43,14 +42,7 @@ func init() {
 		list := listCmd("list"+scope.argsUse, scope.listShort, scope.nargs, scope.path, "webhooks", []output.Breadcrumb{
 			{Label: "Show", Command: "neetoform webhooks show <id>"},
 		})
-		create := &cobra.Command{
-			Use:   "create" + scope.argsUse,
-			Short: scope.createShort,
-			Args:  exactArgs(scope.nargs),
-			RunE: func(cmd *cobra.Command, args []string) error {
-				return createWebhook(cmd, scope.path(args[:scope.nargs]))
-			},
-		}
+		create := saveCmd("create"+scope.argsUse, scope.createShort, scope.nargs, http.MethodPost, scope.path, printActionResult, webhookBody)
 		create.Flags().String("endpoint", "", "URL that receives the webhook calls")
 		create.Flags().String("events", "", "Comma-separated events to fire on: submit. All events when omitted")
 		create.Flags().String("secret", "", "Secret used to sign calls; never shown again")

@@ -65,22 +65,11 @@ func capitalize(s string) string {
 }
 
 func newLogicSave(r logicResource, verb string, build func(cmd *cobra.Command) (map[string]any, error)) *cobra.Command {
-	nargs, use, method, render := 1, verb+" <form-id>", http.MethodPost, printer(printActionResult)
+	short := capitalize(verb) + " a " + r.singular
 	if verb == "update" {
-		nargs, use, method, render = 2, verb+" <form-id> <"+r.singular+"-id>", http.MethodPatch, printResource
+		return saveCmd("update <form-id> <"+r.singular+"-id>", short, 2, http.MethodPatch, formResource(r.path), printResource, build)
 	}
-	return &cobra.Command{
-		Use:   use,
-		Short: capitalize(verb) + " a " + r.singular,
-		Args:  cobra.ExactArgs(nargs),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			body, err := build(cmd)
-			if err != nil {
-				return err
-			}
-			return sendAndPrint(cmd, method, formResource(r.path)(args), body, render)
-		},
-	}
+	return saveCmd(verb+" <form-id>", short, 1, http.MethodPost, formResource(r.path), printActionResult, build)
 }
 
 var conditionsResource = logicResource{
