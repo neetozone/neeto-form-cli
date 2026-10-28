@@ -22,20 +22,13 @@ var formsCreateCmd = &cobra.Command{
 	Short: "Create a blank form",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		style, _ := cmd.Flags().GetString("style")
-		if err := validateEnum("style", style, validFormStyles); err != nil {
+		if err := validateEnum("style", flagString(cmd, "style"), validFormStyles); err != nil {
 			return err
 		}
 
-		data, err := send(cmd, http.MethodPost, apiPath("forms"), map[string]any{
+		return sendAndPrint(cmd, http.MethodPost, apiPath("forms"), map[string]any{
 			"form": flagValues(cmd, "title", "style", "created-by-email"),
-		})
-		if err != nil {
-			return err
-		}
-
-		printActionResult(data, nil)
-		return nil
+		}, printActionResult)
 	},
 }
 
@@ -44,24 +37,9 @@ var formsUpdateCmd = &cobra.Command{
 	Short: "Rename a form",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := send(cmd, http.MethodPatch, formPath(args[0]), map[string]any{
+		return sendAndPrint(cmd, http.MethodPatch, formPath(args[0]), map[string]any{
 			"form": flagValues(cmd, "title"),
-		})
-		if err != nil {
-			return err
-		}
-
-		printResource(data, nil)
-		return nil
-	},
-}
-
-var formsDeleteCmd = &cobra.Command{
-	Use:   "delete <form-id>",
-	Short: "Delete a form",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return removeAndConfirm(cmd, formPath(args[0]), nil, "Form deleted.")
+		}, printResource)
 	},
 }
 
@@ -70,13 +48,7 @@ var formsBulkDeleteCmd = &cobra.Command{
 	Short: "Delete several forms at once",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := send(cmd, http.MethodDelete, apiPath("forms", "bulk_destroy"), map[string]any{"ids": args})
-		if err != nil {
-			return err
-		}
-
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodDelete, apiPath("forms", "bulk_destroy"), map[string]any{"ids": args}, printActionResult)
 	},
 }
 
@@ -106,13 +78,7 @@ func newFormActionCmd(verb, short, method string, segment string) *cobra.Command
 		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := send(cmd, method, formPath(args[0], segment), nil)
-			if err != nil {
-				return err
-			}
-
-			printActionResult(data, nil)
-			return nil
+			return sendAndPrint(cmd, method, formPath(args[0], segment), nil, printActionResult)
 		},
 	}
 }
@@ -140,13 +106,7 @@ var formsTransferCmd = &cobra.Command{
 		body := flagValues(cmd, "to=destination_workspace")
 		body["ids"] = args
 
-		data, err := send(cmd, http.MethodPost, apiPath("forms", "transfer"), body)
-		if err != nil {
-			return err
-		}
-
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPost, apiPath("forms", "transfer"), body, printActionResult)
 	},
 }
 
@@ -162,7 +122,12 @@ func init() {
 	formsTransferCmd.Flags().String("to", "", "Subdomain of the destination workspace, where you are an admin")
 	markFlagsRequired(formsTransferCmd, "to")
 
-	formsCmd.AddCommand(formsCreateCmd, formsUpdateCmd, formsDeleteCmd, formsBulkDeleteCmd)
+	formsCmd.AddCommand(
+		formsCreateCmd,
+		formsUpdateCmd,
+		deleteCmd("delete <form-id>", "Delete a form", 1, func(args []string) string { return formPath(args[0]) }, "Form deleted."),
+		formsBulkDeleteCmd,
+	)
 	for _, operation := range formBulkOperations {
 		formsCmd.AddCommand(newFormBulkOperationCmd(operation.verb, operation.short))
 	}

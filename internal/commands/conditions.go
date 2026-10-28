@@ -2,7 +2,7 @@ package commands
 
 import (
 	"net/http"
-	"net/url"
+	"strings"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
@@ -18,75 +18,23 @@ type logicResource struct {
 	search   bool
 }
 
-func logicPayload(cmd *cobra.Command, key string, specs ...string) (map[string]any, error) {
-	body, err := jsonFileBody(cmd)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range flagValues(cmd, specs...) {
-		body[k] = v
-	}
-	return map[string]any{key: body}, nil
-}
-
 func newLogicGroup(r logicResource) *cobra.Command {
 	group := &cobra.Command{Use: r.use, Short: "Manage " + r.label}
+	idUse := " <form-id> <" + r.singular + "-id>"
 
-	list := &cobra.Command{
-		Use:   "list <form-id>",
-		Short: "List " + r.label,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			params := queryValues(cmd, paginationParams(cmd), "search")
-			data, err := fetch(cmd, formPath(args[0], r.path), params)
-			if err != nil {
-				return err
-			}
-			printList(data, r.listKey, []output.Breadcrumb{
-				{Label: "Show", Command: "neetoform forms " + r.use + " show <form-id> <" + r.singular + "-id>"},
-			})
-			return nil
-		},
-	}
-	addPaginationFlags(list)
+	list := listCmd("list <form-id>", "List "+r.label, 1, formResource(r.path), r.listKey, []output.Breadcrumb{
+		{Label: "Show", Command: "neetoform forms " + r.use + " show" + idUse},
+	}, "search")
 	if r.search {
 		list.Flags().String("search", "", "Words to match in the rule name, description or condition field")
 	}
 
-	show := &cobra.Command{
-		Use:   "show <form-id> <" + r.singular + "-id>",
-		Short: "Show a " + r.singular,
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := fetch(cmd, formPath(args[0], r.path, args[1]), nil)
-			if err != nil {
-				return err
-			}
-			printResource(data, nil)
-			return nil
-		},
-	}
-
-	del := &cobra.Command{
-		Use:   "delete <form-id> <" + r.singular + "-id>",
-		Short: "Delete a " + r.singular,
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return removeAndConfirm(cmd, formPath(args[0], r.path, args[1]), url.Values{}, capitalize(r.singular)+" deleted.")
-		},
-	}
-
 	clone := &cobra.Command{
-		Use:   "clone <form-id> <" + r.singular + "-id>",
+		Use:   "clone" + idUse,
 		Short: "Clone a " + r.singular,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := send(cmd, http.MethodPost, formPath(args[0], r.path, args[1], "clone"), nil)
-			if err != nil {
-				return err
-			}
-			printActionResult(data, nil)
-			return nil
+			return sendAndPrint(cmd, http.MethodPost, formPath(args[0], r.path, args[1], "clone"), nil, printActionResult)
 		},
 	}
 
@@ -95,56 +43,42 @@ func newLogicGroup(r logicResource) *cobra.Command {
 		Short: "Set the order of " + r.label,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ids, _ := cmd.Flags().GetString("ids")
-			data, err := send(cmd, http.MethodPatch, formPath(args[0], r.path, "reorder"), map[string]any{r.idsKey: splitCSV(ids)})
-			if err != nil {
-				return err
-			}
-			printActionResult(data, nil)
-			return nil
+			body := map[string]any{r.idsKey: splitCSV(flagString(cmd, "ids"))}
+			return sendAndPrint(cmd, http.MethodPatch, formPath(args[0], r.path, "reorder"), body, printActionResult)
 		},
 	}
 	reorder.Flags().String("ids", "", "Every "+r.singular+" id of the form in the new order, comma-separated")
 	markFlagsRequired(reorder, "ids")
 
-	group.AddCommand(list, show, del, clone, reorder)
+	group.AddCommand(
+		list,
+		showCmd("show"+idUse, "Show a "+r.singular, 2, formResource(r.path)),
+		deleteCmd("delete"+idUse, "Delete a "+r.singular, 2, formResource(r.path), capitalize(r.singular)+" deleted."),
+		clone,
+		reorder,
+	)
 	return group
 }
 
 func capitalize(s string) string {
-	return string(s[0]-32) + s[1:]
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func newLogicSave(r logicResource, verb string, build func(cmd *cobra.Command) (map[string]any, error)) *cobra.Command {
-	args := cobra.ExactArgs(1)
-	use := verb + " <form-id>"
+	nargs, use, method, render := 1, verb+" <form-id>", http.MethodPost, printer(printActionResult)
 	if verb == "update" {
-		args = cobra.ExactArgs(2)
-		use = verb + " <form-id> <" + r.singular + "-id>"
+		nargs, use, method, render = 2, verb+" <form-id> <"+r.singular+"-id>", http.MethodPatch, printResource
 	}
 	return &cobra.Command{
 		Use:   use,
 		Short: capitalize(verb) + " a " + r.singular,
-		Args:  args,
+		Args:  cobra.ExactArgs(nargs),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body, err := build(cmd)
 			if err != nil {
 				return err
 			}
-			if verb == "update" {
-				data, err := send(cmd, http.MethodPatch, formPath(args[0], r.path, args[1]), body)
-				if err != nil {
-					return err
-				}
-				printResource(data, nil)
-				return nil
-			}
-			data, err := send(cmd, http.MethodPost, formPath(args[0], r.path), body)
-			if err != nil {
-				return err
-			}
-			printActionResult(data, nil)
-			return nil
+			return sendAndPrint(cmd, method, formResource(r.path)(args), body, render)
 		},
 	}
 }
@@ -162,9 +96,13 @@ func init() {
 	group := newLogicGroup(conditionsResource)
 	for _, verb := range []string{"create", "update"} {
 		save := newLogicSave(conditionsResource, verb, func(cmd *cobra.Command) (map[string]any, error) {
-			return logicPayload(cmd, "condition", "enabled")
+			condition, err := jsonFileWithFlags(cmd, "enabled")
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"condition": condition}, nil
 		})
-		save.Flags().String("json-file", "", `Path to a JSON file with the condition, e.g. {"conditions":{"join_type":"and","items":[{"field":"<question-id>","verb":"is_equal","record":"custom_value","value":"Yes"}]},"actions":{"items":[{"action_type":"show","fields":["<question-id>"]}]}}`)
+		addJSONFileFlag(save, `Path to a JSON file with the condition, e.g. {"conditions":{"join_type":"and","items":[{"field":"<question-id>","verb":"is_equal","record":"custom_value","value":"Yes"}]},"actions":{"items":[{"action_type":"show","fields":["<question-id>"]}]}}`)
 		save.Flags().Bool("enabled", true, "Turn the condition on or off")
 		group.AddCommand(save)
 	}

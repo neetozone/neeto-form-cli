@@ -1,11 +1,14 @@
 package commands
 
 import (
+	"net/http"
 	"net/url"
 
 	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
+
+var validDiscountKinds = []string{"percentage", "fixed"}
 
 var discountCodeBodySpecs = []string{"code", "value", "kind", "currency", "expires-at", "redeems-limit", "form-ids[]"}
 
@@ -14,114 +17,27 @@ var discountCodesCmd = &cobra.Command{
 	Short: "Manage discount codes",
 }
 
-var discountCodesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List discount codes",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, apiPath("discount_codes"), paginationParams(cmd))
-		if err != nil {
-			return err
-		}
-		printList(data, "discount_codes", []output.Breadcrumb{
-			{Label: "Show", Command: "neetoform discount-codes show <id>"},
-		})
-		return nil
-	},
-}
-
-var discountCodesShowCmd = &cobra.Command{
-	Use:   "show <id>",
-	Short: "Show a discount code",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, apiPath("discount_codes", args[0]), nil)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
-	},
-}
-
-var discountCodesCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a discount code",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateEnum("kind", flagString(cmd, "kind"), validDiscountKinds); err != nil {
-			return err
-		}
-		body := map[string]any{"discount_code": flagValues(cmd, discountCodeBodySpecs...)}
-		data, err := send(cmd, "POST", apiPath("discount_codes"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
-	},
-}
-
-var discountCodesUpdateCmd = &cobra.Command{
-	Use:   "update <id>",
-	Short: "Update a discount code",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateEnum("kind", flagString(cmd, "kind"), validDiscountKinds); err != nil {
-			return err
-		}
-		body := map[string]any{"discount_code": flagValues(cmd, discountCodeBodySpecs...)}
-		data, err := send(cmd, "PATCH", apiPath("discount_codes", args[0]), body)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
-	},
-}
-
-var discountCodesDeleteCmd = &cobra.Command{
-	Use:   "delete <id>",
-	Short: "Delete a discount code",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return removeAndConfirm(cmd, apiPath("discount_codes", args[0]), nil, "Discount code deleted.")
-	},
-}
-
-var discountCodesFormsCmd = &cobra.Command{
-	Use:   "forms",
-	Short: "Work with forms a discount code can apply to",
-}
-
-var discountCodesFormsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List forms a discount code can be enabled on",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, apiPath("discount_codes", "forms"), paginationParams(cmd))
-		if err != nil {
-			return err
-		}
-		printList(data, "forms", nil)
-		return nil
-	},
-}
-
-var discountCodesRedemptionsCmd = &cobra.Command{
-	Use:   "redemptions",
-	Short: "Work with discount code redemptions",
-}
-
-var discountCodesRedemptionsListCmd = &cobra.Command{
-	Use:   "list <discount-code-id>",
-	Short: "List redemptions of a discount code",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, apiPath("discount_codes", args[0], "redemptions"), paginationParams(cmd))
-		if err != nil {
-			return err
-		}
-		printList(data, "redemptions", nil)
-		return nil
-	},
+func newDiscountCodeSaveCmd(use, short string, nargs int, method string, render printer) *cobra.Command {
+	save := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  exactArgs(nargs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateEnum("kind", flagString(cmd, "kind"), validDiscountKinds); err != nil {
+				return err
+			}
+			body := map[string]any{"discount_code": flagValues(cmd, discountCodeBodySpecs...)}
+			return sendAndPrint(cmd, method, workspaceResource("discount_codes")(args[:nargs]), body, render)
+		},
+	}
+	save.Flags().String("code", "", "Code customers enter, 3 to 30 characters without spaces")
+	save.Flags().String("value", "", "Discount value; a percentage up to 100 or a fixed amount")
+	save.Flags().String("kind", "", "Discount kind: percentage (default) or fixed")
+	save.Flags().String("currency", "", "Currency of a fixed discount, e.g. usd")
+	save.Flags().String("expires-at", "", "Expiry date in ISO 8601, e.g. 2026-12-31")
+	save.Flags().Int("redeems-limit", 0, "Maximum number of redemptions, 1 to 100000")
+	save.Flags().String("form-ids", "", "Comma-separated form IDs to enable the code on; on update, replaces the current forms")
+	return save
 }
 
 var discountCodesReportCmd = &cobra.Command{
@@ -139,34 +55,38 @@ var discountCodesReportCmd = &cobra.Command{
 	},
 }
 
-var validDiscountKinds = []string{"percentage", "fixed"}
-
-func addDiscountCodeFlags(cmd *cobra.Command) {
-	cmd.Flags().String("code", "", "Code customers enter, 3 to 30 characters without spaces")
-	cmd.Flags().String("value", "", "Discount value; a percentage up to 100 or a fixed amount")
-	cmd.Flags().String("kind", "", "Discount kind: percentage (default) or fixed")
-	cmd.Flags().String("currency", "", "Currency of a fixed discount, e.g. usd")
-	cmd.Flags().String("expires-at", "", "Expiry date in ISO 8601, e.g. 2026-12-31")
-	cmd.Flags().Int("redeems-limit", 0, "Maximum number of redemptions, 1 to 100000")
-	cmd.Flags().String("form-ids", "", "Comma-separated form IDs to enable the code on; on update, replaces the current forms")
-}
-
 func init() {
-	addPaginationFlags(discountCodesListCmd)
-	addPaginationFlags(discountCodesFormsListCmd)
-	addPaginationFlags(discountCodesRedemptionsListCmd)
+	createCmd := newDiscountCodeSaveCmd("create", "Create a discount code", 0, http.MethodPost, printActionResult)
+	markFlagsRequired(createCmd, "code", "value")
 
-	addDiscountCodeFlags(discountCodesCreateCmd)
-	markFlagsRequired(discountCodesCreateCmd, "code", "value")
-	addDiscountCodeFlags(discountCodesUpdateCmd)
+	discountCodesFormsCmd := &cobra.Command{
+		Use:   "forms",
+		Short: "Work with forms a discount code can apply to",
+	}
+	discountCodesFormsCmd.AddCommand(listCmd("list", "List forms a discount code can be enabled on", 0,
+		func([]string) string { return apiPath("discount_codes", "forms") }, "forms", nil))
+
+	discountCodesRedemptionsCmd := &cobra.Command{
+		Use:   "redemptions",
+		Short: "Work with discount code redemptions",
+	}
+	discountCodesRedemptionsCmd.AddCommand(listCmd("list <discount-code-id>", "List redemptions of a discount code", 1,
+		func(args []string) string { return apiPath("discount_codes", args[0], "redemptions") }, "redemptions", nil))
 
 	discountCodesReportCmd.Flags().String("start-date", "", "First day to include, ISO date, e.g. 2026-10-01")
 	discountCodesReportCmd.Flags().String("end-date", "", "Last day to include, ISO date, e.g. 2026-10-31")
 
-	discountCodesFormsCmd.AddCommand(discountCodesFormsListCmd)
-	discountCodesRedemptionsCmd.AddCommand(discountCodesRedemptionsListCmd)
-	discountCodesCmd.AddCommand(discountCodesListCmd, discountCodesShowCmd, discountCodesCreateCmd,
-		discountCodesUpdateCmd, discountCodesDeleteCmd, discountCodesFormsCmd,
-		discountCodesRedemptionsCmd, discountCodesReportCmd)
+	discountCodesCmd.AddCommand(
+		listCmd("list", "List discount codes", 0, workspaceResource("discount_codes"), "discount_codes", []output.Breadcrumb{
+			{Label: "Show", Command: "neetoform discount-codes show <id>"},
+		}),
+		showCmd("show <id>", "Show a discount code", 1, workspaceResource("discount_codes")),
+		createCmd,
+		newDiscountCodeSaveCmd("update <id>", "Update a discount code", 1, http.MethodPatch, printResource),
+		deleteCmd("delete <id>", "Delete a discount code", 1, workspaceResource("discount_codes"), "Discount code deleted."),
+		discountCodesFormsCmd,
+		discountCodesRedemptionsCmd,
+		discountCodesReportCmd,
+	)
 	register(func(root *cobra.Command) { root.AddCommand(discountCodesCmd) })
 }

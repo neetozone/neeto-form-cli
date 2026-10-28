@@ -26,20 +26,6 @@ type settingGroup struct {
 func (g settingGroup) command() *cobra.Command {
 	group := &cobra.Command{Use: g.use, Short: "Manage " + g.short}
 
-	show := &cobra.Command{
-		Use:   "show <form-id>",
-		Short: "Show " + g.short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := fetch(cmd, formPath(args[0], g.segment), nil)
-			if err != nil {
-				return err
-			}
-			printResource(data, nil)
-			return nil
-		},
-	}
-
 	update := &cobra.Command{
 		Use:   "update <form-id>",
 		Short: "Update " + g.short,
@@ -50,17 +36,13 @@ func (g settingGroup) command() *cobra.Command {
 					return err
 				}
 			}
-			data, err := send(cmd, http.MethodPatch, formPath(args[0], g.segment), map[string]any{g.root: flagValues(cmd, g.specs...)})
-			if err != nil {
-				return err
-			}
-			printResource(data, nil)
-			return nil
+			body := map[string]any{g.root: flagValues(cmd, g.specs...)}
+			return sendAndPrint(cmd, http.MethodPatch, formPath(args[0], g.segment), body, printResource)
 		},
 	}
 	g.configure(update)
 
-	group.AddCommand(show, update)
+	group.AddCommand(showCmd("show <form-id>", "Show "+g.short, 1, formResource(g.segment)), update)
 	return group
 }
 
@@ -69,35 +51,13 @@ var formDiscountCodesCmd = &cobra.Command{
 	Short: "Manage the discount codes a form accepts",
 }
 
-var formDiscountCodesListCmd = &cobra.Command{
-	Use:   "list <form-id>",
-	Short: "List discount codes and whether the form accepts each",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, formPath(args[0], "discount_codes"), paginationParams(cmd))
-		if err != nil {
-			return err
-		}
-		printList(data, "discount_codes", []output.Breadcrumb{
-			{Label: "Update", Command: "neetoform forms discount-codes update <form-id> --ids <code-id>"},
-		})
-		return nil
-	},
-}
-
 var formDiscountCodesUpdateCmd = &cobra.Command{
 	Use:   "update <form-id>",
 	Short: "Replace the discount codes a form accepts",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ids := splitCSV(flagString(cmd, "ids"))
-		body := map[string]any{"discount_codes": map[string]any{"ids": ids}}
-		data, err := send(cmd, http.MethodPatch, formPath(args[0], "discount_codes"), body)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
+		body := map[string]any{"discount_codes": map[string]any{"ids": splitCSV(flagString(cmd, "ids"))}}
+		return sendAndPrint(cmd, http.MethodPatch, formPath(args[0], "discount_codes"), body, printResource)
 	},
 }
 
@@ -178,8 +138,12 @@ func init() {
 		formsCmd.AddCommand(group.command())
 	}
 
-	addPaginationFlags(formDiscountCodesListCmd)
 	formDiscountCodesUpdateCmd.Flags().String("ids", "", "Comma-separated UUIDs of the discount codes the form accepts; omit to clear all")
-	formDiscountCodesCmd.AddCommand(formDiscountCodesListCmd, formDiscountCodesUpdateCmd)
+	formDiscountCodesCmd.AddCommand(
+		listCmd("list <form-id>", "List discount codes and whether the form accepts each", 1, formResource("discount_codes"), "discount_codes", []output.Breadcrumb{
+			{Label: "Update", Command: "neetoform forms discount-codes update <form-id> --ids <code-id>"},
+		}),
+		formDiscountCodesUpdateCmd,
+	)
 	formsCmd.AddCommand(formDiscountCodesCmd)
 }

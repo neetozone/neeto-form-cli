@@ -21,18 +21,11 @@ var submissionsListCmd = &cobra.Command{
 	Short: "List submissions for a form",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		status, _ := cmd.Flags().GetString("status")
-		if err := validateEnum("status", status, validSubmissionStatuses); err != nil {
+		if err := validateEnum("status", flagString(cmd, "status"), validSubmissionStatuses); err != nil {
 			return err
 		}
 
-		params := queryValues(cmd, paginationParams(cmd), "status", "search")
-		if after, _ := cmd.Flags().GetString("submitted-after"); after != "" {
-			params.Set("submitted_after", after)
-		}
-		if before, _ := cmd.Flags().GetString("submitted-before"); before != "" {
-			params.Set("submitted_before", before)
-		}
+		params := queryValues(cmd, paginationParams(cmd), "status", "search", "submitted-after", "submitted-before")
 		if err := setOrderParam(cmd, params); err != nil {
 			return err
 		}
@@ -49,31 +42,12 @@ var submissionsListCmd = &cobra.Command{
 	},
 }
 
-var submissionsShowCmd = &cobra.Command{
-	Use:   "show <form-id> <submission-id>",
-	Short: "Show a submission",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, formPath(args[0], "submissions", args[1]), nil)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
-	},
-}
-
 var submissionsDeleteCmd = &cobra.Command{
 	Use:   "delete <form-id> <submission-id>",
 	Short: "Move a submission to the trash",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := send(cmd, http.MethodDelete, formPath(args[0], "submissions", args[1]), nil)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodDelete, formPath(args[0], "submissions", args[1]), nil, printActionResult)
 	},
 }
 
@@ -82,12 +56,7 @@ var submissionsBulkDeleteCmd = &cobra.Command{
 	Short: "Move several submissions to the trash",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := send(cmd, http.MethodDelete, formPath(args[0], "submissions", "bulk_destroy"), flagValues(cmd, "ids[]"))
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodDelete, formPath(args[0], "submissions", "bulk_destroy"), flagValues(cmd, "ids[]"), printActionResult)
 	},
 }
 
@@ -97,12 +66,7 @@ var submissionsSendResponsesCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		body := flagValues(cmd, "ids[]", "email-question-id", "subject", "body", "cc-emails[]=cc_emails", "bcc-emails[]=bcc_emails")
-		data, err := send(cmd, http.MethodPost, formPath(args[0], "submissions", "send_responses"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPost, formPath(args[0], "submissions", "send_responses"), body, printActionResult)
 	},
 }
 
@@ -111,18 +75,12 @@ var submissionsExportCmd = &cobra.Command{
 	Short: "Email an export of submissions",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		exportType, _ := cmd.Flags().GetString("type")
-		if err := validateEnum("type", exportType, validExportTypes); err != nil {
+		if err := validateEnum("type", flagString(cmd, "type"), validExportTypes); err != nil {
 			return err
 		}
 		body := flagValues(cmd, "type=export_type", "ids[]=submission_ids", "recipient-email",
 			"include-hidden-fields", "include-meta-data", "include-question-descriptions")
-		data, err := send(cmd, http.MethodPost, formPath(args[0], "exports"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPost, formPath(args[0], "exports"), body, printActionResult)
 	},
 }
 
@@ -154,7 +112,9 @@ func init() {
 	submissionsExportCmd.Flags().Bool("include-question-descriptions", false, "Include question descriptions")
 	markFlagsRequired(submissionsExportCmd, "type")
 
-	submissionsCmd.AddCommand(submissionsListCmd, submissionsShowCmd, submissionsDeleteCmd, submissionsBulkDeleteCmd,
+	submissionsCmd.AddCommand(submissionsListCmd,
+		showCmd("show <form-id> <submission-id>", "Show a submission", 2, formResource("submissions")),
+		submissionsDeleteCmd, submissionsBulkDeleteCmd,
 		submissionsSendResponsesCmd, submissionsExportCmd)
 	formsCmd.AddCommand(submissionsCmd)
 }

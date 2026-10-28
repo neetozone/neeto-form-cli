@@ -3,13 +3,21 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
 
+	"github.com/neetozone/neeto-cli-commons/output"
 	"github.com/spf13/cobra"
 )
+
+type argsPath func(args []string) string
+
+type printer func(data json.RawMessage, breadcrumbs []output.Breadcrumb)
+
+type keyValue struct{ key, value string }
 
 func apiPath(segments ...string) string {
 	escaped := make([]string, len(segments))
@@ -23,6 +31,74 @@ func formPath(formID string, segments ...string) string {
 	return apiPath(append([]string{"forms", formID}, segments...)...)
 }
 
+func workspaceResource(segment string) argsPath {
+	return func(args []string) string {
+		return apiPath(append([]string{segment}, args...)...)
+	}
+}
+
+func formResource(segment string) argsPath {
+	return func(args []string) string {
+		return formPath(args[0], append([]string{segment}, args[1:]...)...)
+	}
+}
+
+func exactArgs(n int) cobra.PositionalArgs {
+	if n == 0 {
+		return nil
+	}
+	return cobra.ExactArgs(n)
+}
+
+func showCmd(use, short string, nargs int, path argsPath) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  exactArgs(nargs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			data, err := fetch(cmd, path(args[:nargs]), nil)
+			if err != nil {
+				return err
+			}
+			printResource(data, nil)
+			return nil
+		},
+	}
+}
+
+func listCmd(use, short string, nargs int, path argsPath, key string, breadcrumbs []output.Breadcrumb, querySpecs ...string) *cobra.Command {
+	list := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  exactArgs(nargs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			data, err := fetch(cmd, path(args[:nargs]), queryValues(cmd, paginationParams(cmd), querySpecs...))
+			if err != nil {
+				return err
+			}
+			printList(data, key, breadcrumbs)
+			return nil
+		},
+	}
+	addPaginationFlags(list)
+	return list
+}
+
+func deleteCmd(use, short string, nargs int, path argsPath, message string) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  exactArgs(nargs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return removeAndConfirm(cmd, path(args[:nargs]), nil, message)
+		},
+	}
+}
+
+func addJSONFileFlag(cmd *cobra.Command, help string) {
+	cmd.Flags().String("json-file", "", help)
+}
+
 func flagString(cmd *cobra.Command, name string) string {
 	value, _ := cmd.Flags().GetString(name)
 	return value
@@ -33,6 +109,39 @@ func validateEnum(flag, value string, valid []string) error {
 		return nil
 	}
 	return fmt.Errorf("Invalid --%s %q. Valid values: %s.", flag, value, strings.Join(valid, ", "))
+}
+
+func validateEnumList(flag string, values, valid []string) error {
+	for _, value := range values {
+		if err := validateEnum(flag, value, valid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func parseKeyValues(pairs []string, flag, usage string) ([]keyValue, error) {
+	parsed := make([]keyValue, 0, len(pairs))
+	for _, pair := range pairs {
+		key, value, found := strings.Cut(pair, "=")
+		if !found || key == "" {
+			return nil, fmt.Errorf("Invalid --%s %q. Use %s.", flag, pair, usage)
+		}
+		parsed = append(parsed, keyValue{key, value})
+	}
+	return parsed, nil
+}
+
+func mergeInto(body map[string]any, key string, extra map[string]any) {
+	if len(extra) == 0 {
+		return
+	}
+	merged, _ := body[key].(map[string]any)
+	if merged == nil {
+		merged = map[string]any{}
+	}
+	maps.Copy(merged, extra)
+	body[key] = merged
 }
 
 func flagValues(cmd *cobra.Command, specs ...string) map[string]interface{} {
@@ -80,11 +189,20 @@ func queryValues(cmd *cobra.Command, params url.Values, specs ...string) url.Val
 }
 
 func jsonFileBody(cmd *cobra.Command) (map[string]any, error) {
-	path, _ := cmd.Flags().GetString("json-file")
+	path := flagString(cmd, "json-file")
 	if path == "" {
 		return map[string]any{}, nil
 	}
 	return readJSONFile(path)
+}
+
+func jsonFileWithFlags(cmd *cobra.Command, specs ...string) (map[string]any, error) {
+	body, err := jsonFileBody(cmd)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(body, flagValues(cmd, specs...))
+	return body, nil
 }
 
 func fetch(cmd *cobra.Command, path string, params url.Values) (json.RawMessage, error) {
@@ -113,6 +231,15 @@ func send(cmd *cobra.Command, method, path string, body any) (json.RawMessage, e
 	default:
 		return nil, fmt.Errorf("unsupported method %s", method)
 	}
+}
+
+func sendAndPrint(cmd *cobra.Command, method, path string, body any, render printer) error {
+	data, err := send(cmd, method, path, body)
+	if err != nil {
+		return err
+	}
+	render(data, nil)
+	return nil
 }
 
 func removeAndConfirm(cmd *cobra.Command, path string, params url.Values, message string) error {

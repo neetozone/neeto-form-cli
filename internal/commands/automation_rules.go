@@ -27,30 +27,16 @@ func buildRulePayload(cmd *cobra.Command) (map[string]any, error) {
 	if err := validateEnum("delay-unit", flagString(cmd, "delay-unit"), validDelayUnits); err != nil {
 		return nil, err
 	}
-	for _, event := range splitCSV(flagString(cmd, "events")) {
-		if err := validateEnum("events", event, validRuleEvents); err != nil {
-			return nil, err
-		}
-	}
-
-	payload, err := logicPayload(cmd, "automation_rule", "name", "description", "status", "performer", "events[]")
-	if err != nil {
+	if err := validateEnumList("events", splitCSV(flagString(cmd, "events")), validRuleEvents); err != nil {
 		return nil, err
 	}
 
-	delay := flagValues(cmd, "delay-value=value", "delay-unit=unit")
-	if len(delay) > 0 {
-		rule := payload["automation_rule"].(map[string]any)
-		merged, _ := rule["execution_delay"].(map[string]any)
-		if merged == nil {
-			merged = map[string]any{}
-		}
-		for k, v := range delay {
-			merged[k] = v
-		}
-		rule["execution_delay"] = merged
+	rule, err := jsonFileWithFlags(cmd, "name", "description", "status", "performer", "events[]")
+	if err != nil {
+		return nil, err
 	}
-	return payload, nil
+	mergeInto(rule, "execution_delay", flagValues(cmd, "delay-value=value", "delay-unit=unit"))
+	return map[string]any{"automation_rule": rule}, nil
 }
 
 func addRuleFlags(cmd *cobra.Command) {
@@ -61,7 +47,7 @@ func addRuleFlags(cmd *cobra.Command) {
 	cmd.Flags().String("events", "", "Comma-separated events: submission_created, custom_field_updated")
 	cmd.Flags().Int("delay-value", 0, "Delay before the actions run, 1 to 15")
 	cmd.Flags().String("delay-unit", "", "Delay unit: minutes, hours or days")
-	cmd.Flags().String("json-file", "", `Path to a JSON file with the rule; flags override it, e.g. {"conditions":[{"field":"<question-id>","kind":"record","verb":"contains","join_type":"and_operator","metadata":{"value":"@example.com"}}],"actions":[{"name":"email_to","metadata":{"subject":"New lead","body":"{{all-answers}}","emails":["sales@example.com"]}}]}`)
+	addJSONFileFlag(cmd, `Path to a JSON file with the rule; flags override it, e.g. {"conditions":[{"field":"<question-id>","kind":"record","verb":"contains","join_type":"and_operator","metadata":{"value":"@example.com"}}],"actions":[{"name":"email_to","metadata":{"subject":"New lead","body":"{{all-answers}}","emails":["sales@example.com"]}}]}`)
 }
 
 func init() {

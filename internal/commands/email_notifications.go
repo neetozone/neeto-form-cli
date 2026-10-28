@@ -44,12 +44,7 @@ var emailNotificationsUpdateCmd = &cobra.Command{
 			return err
 		}
 		body := map[string]any{"email_notification": flagValues(cmd, emailNotificationSpecs...)}
-		data, err := send(cmd, http.MethodPatch, formPath(args[0], "email_notifications", args[1]), body)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPatch, formPath(args[0], "email_notifications", args[1]), body, printResource)
 	},
 }
 

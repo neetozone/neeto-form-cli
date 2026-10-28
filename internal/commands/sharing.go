@@ -21,7 +21,7 @@ var shareShowCmd = &cobra.Command{
 	Short: "Show a form's public link and embed codes",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		embed, _ := cmd.Flags().GetString("embed")
+		embed := flagString(cmd, "embed")
 		if err := validateEnum("embed", embed, shareEmbedTypes); err != nil {
 			return err
 		}
@@ -57,12 +57,7 @@ var publicLinkUpdateCmd = &cobra.Command{
 	Short: "Change a form's public link",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := send(cmd, http.MethodPatch, formPath(args[0], "public_link"), flagValues(cmd, "public-link-id"))
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPatch, formPath(args[0], "public_link"), flagValues(cmd, "public-link-id"), printResource)
 	},
 }
 
@@ -76,18 +71,17 @@ var prefilledLinksCreateCmd = &cobra.Command{
 	Short: "Build a prefilled link for a form",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		answers := []map[string]any{}
-
 		pairs, _ := cmd.Flags().GetStringArray("answer")
-		for _, pair := range pairs {
-			questionID, value, found := strings.Cut(pair, "=")
-			if !found || questionID == "" {
-				return fmt.Errorf("Invalid --answer %q. Use <question-id>=<value>.", pair)
-			}
-			answers = append(answers, map[string]any{"question_id": questionID, "value": value})
+		parsed, err := parseKeyValues(pairs, "answer", "<question-id>=<value>")
+		if err != nil {
+			return err
+		}
+		answers := []map[string]any{}
+		for _, pair := range parsed {
+			answers = append(answers, map[string]any{"question_id": pair.key, "value": pair.value})
 		}
 
-		if raw, _ := cmd.Flags().GetString("answers-json"); raw != "" {
+		if raw := flagString(cmd, "answers-json"); raw != "" {
 			var extra []map[string]any
 			if err := json.Unmarshal([]byte(raw), &extra); err != nil {
 				return fmt.Errorf("Invalid --answers-json: %w", err)
@@ -98,12 +92,7 @@ var prefilledLinksCreateCmd = &cobra.Command{
 		body := flagValues(cmd, "discount-code")
 		body["answers"] = answers
 
-		data, err := send(cmd, http.MethodPost, formPath(args[0], "prefilled_link"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPost, formPath(args[0], "prefilled_link"), body, printActionResult)
 	},
 }
 
@@ -127,12 +116,7 @@ var emailInvitationsCreateCmd = &cobra.Command{
 			"send-at",
 		)
 
-		data, err := send(cmd, http.MethodPost, formPath(args[0], "email_invitations"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
+		return sendAndPrint(cmd, http.MethodPost, formPath(args[0], "email_invitations"), body, printActionResult)
 	},
 }
 

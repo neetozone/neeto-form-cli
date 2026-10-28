@@ -37,70 +37,33 @@ var messageTemplatesListCmd = &cobra.Command{
 	},
 }
 
-var messageTemplatesShowCmd = &cobra.Command{
-	Use:   "show <form-id> <id>",
-	Short: "Show a message template",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		data, err := fetch(cmd, formPath(args[0], "message_templates", args[1]), nil)
-		if err != nil {
+func saveMessageTemplate(method string, render printer) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		if err := validateMessageTemplateFlags(cmd); err != nil {
 			return err
 		}
-		printResource(data, nil)
-		return nil
-	},
+		body := map[string]any{"message_template": flagValues(cmd, "name", "type=template_type", "body", "subject", "status")}
+		return sendAndPrint(cmd, method, formResource("message_templates")(args), body, render)
+	}
 }
 
 var messageTemplatesCreateCmd = &cobra.Command{
 	Use:   "create <form-id>",
 	Short: "Create a message template",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateMessageTemplateFlags(cmd); err != nil {
-			return err
-		}
-		body := map[string]any{"message_template": flagValues(cmd, "name", "type=template_type", "body", "subject", "status")}
-		data, err := send(cmd, http.MethodPost, formPath(args[0], "message_templates"), body)
-		if err != nil {
-			return err
-		}
-		printActionResult(data, nil)
-		return nil
-	},
+	RunE:  saveMessageTemplate(http.MethodPost, printActionResult),
 }
 
 var messageTemplatesUpdateCmd = &cobra.Command{
 	Use:   "update <form-id> <id>",
 	Short: "Update a message template",
 	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateMessageTemplateFlags(cmd); err != nil {
-			return err
-		}
-		body := map[string]any{"message_template": flagValues(cmd, "name", "status", "subject", "body")}
-		data, err := send(cmd, http.MethodPatch, formPath(args[0], "message_templates", args[1]), body)
-		if err != nil {
-			return err
-		}
-		printResource(data, nil)
-		return nil
-	},
-}
-
-var messageTemplatesDeleteCmd = &cobra.Command{
-	Use:   "delete <form-id> <id>",
-	Short: "Delete a message template",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return removeAndConfirm(cmd, formPath(args[0], "message_templates", args[1]), nil, "Message template deleted.")
-	},
+	RunE:  saveMessageTemplate(http.MethodPatch, printResource),
 }
 
 func validateMessageTemplateFlags(cmd *cobra.Command) error {
-	if cmd.Flags().Lookup("type") != nil {
-		if err := validateEnum("type", flagString(cmd, "type"), validMessageTemplateTypes); err != nil {
-			return err
-		}
+	if err := validateEnum("type", flagString(cmd, "type"), validMessageTemplateTypes); err != nil {
+		return err
 	}
 	return validateEnum("status", flagString(cmd, "status"), validMessageTemplateStatuses)
 }
@@ -122,6 +85,12 @@ func init() {
 	messageTemplatesUpdateCmd.Flags().String("subject", "", "Email subject")
 	messageTemplatesUpdateCmd.Flags().String("body", "", "Template body; HTML for email")
 
-	messageTemplatesCmd.AddCommand(messageTemplatesListCmd, messageTemplatesShowCmd, messageTemplatesCreateCmd, messageTemplatesUpdateCmd, messageTemplatesDeleteCmd)
+	messageTemplatesCmd.AddCommand(
+		messageTemplatesListCmd,
+		showCmd("show <form-id> <id>", "Show a message template", 2, formResource("message_templates")),
+		messageTemplatesCreateCmd,
+		messageTemplatesUpdateCmd,
+		deleteCmd("delete <form-id> <id>", "Delete a message template", 2, formResource("message_templates"), "Message template deleted."),
+	)
 	formsCmd.AddCommand(messageTemplatesCmd)
 }
