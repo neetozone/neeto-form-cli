@@ -48,8 +48,9 @@ type recordedRequest struct {
 }
 
 var (
-	testApp     *cli.App
-	testAppOnce sync.Once
+	testApp       *cli.App
+	testAppOnce   sync.Once
+	requiredFlags = map[*pflag.Flag]bool{}
 )
 
 func runCLI(t *testing.T, response string, args ...string) (recordedRequest, string, error) {
@@ -87,6 +88,7 @@ func runCLI(t *testing.T, response string, args ...string) (recordedRequest, str
 		}
 		testApp = cli.New(*cfg)
 		Register(testApp)
+		recordRequiredFlags(testApp.Root())
 	})
 
 	out := &bytes.Buffer{}
@@ -99,10 +101,28 @@ func runCLI(t *testing.T, response string, args ...string) (recordedRequest, str
 	return got, out.String(), err
 }
 
+func recordRequiredFlags(cmd *cobra.Command) {
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if len(f.Annotations[cobra.BashCompOneRequiredFlag]) > 0 {
+			requiredFlags[f] = true
+		}
+	})
+	for _, sub := range cmd.Commands() {
+		recordRequiredFlags(sub)
+	}
+}
+
 func resetFlags(cmd *cobra.Command) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		_ = f.Value.Set(f.DefValue)
+		if slice, ok := f.Value.(pflag.SliceValue); ok {
+			_ = slice.Replace(nil)
+		} else {
+			_ = f.Value.Set(f.DefValue)
+		}
 		f.Changed = false
+		if requiredFlags[f] {
+			_ = cmd.MarkFlagRequired(f.Name)
+		}
 	})
 	for _, sub := range cmd.Commands() {
 		resetFlags(sub)
