@@ -142,8 +142,15 @@ stderr. Common errors the agent should expect:
 
 ## Product-specific commands
 
-Two resource groups. `neetoform commands` remains the authoritative, always
-current catalog; the tables below cover what ships today.
+`neetoform commands` remains the authoritative, always current catalog, with every
+flag. The sections below cover what ships today and what to know before running it.
+
+Form-scoped resources live under `forms`: `neetoform forms <resource> <verb> <form-id> [<id>]`.
+Workspace resources are top level. Enum flags are checked client-side, so a bad value fails
+before any request with `Invalid --<flag> "x". Valid values: ...`. Commands that take a nested
+payload (question attributes, conditions, rule actions, theme properties) read it from
+`--json-file <path>`; scalar flags passed alongside override the file's keys. Delete commands
+run at once with no confirmation prompt, so confirm with the user before running one.
 
 ### `forms`
 
@@ -169,6 +176,99 @@ entry in `responses` has `label`, `position`, `kind`, `slug` and `value`, in the
 question order. A question the person skipped has no entry, so to build columns, key answers by
 `slug` and take the column list from `forms show`.
 
+#### Submissions
+
+| Command | Purpose |
+|---|---|
+| `forms submissions list <form-id> [--status completed\|incomplete\|all] [--search T] ...` | `--status` defaults to `completed` on the server; `--search` matches answer text. |
+| `forms submissions show <form-id> <submission-id>` | One submission. |
+| `forms submissions delete <form-id> <submission-id>` / `bulk-delete <form-id> --ids a,b` | Move to the trash (restorable in the app). |
+| `forms submissions send-responses <form-id> --ids a,b --email-question-id <q> --subject S --body <html> [--cc-emails] [--bcc-emails]` | Emails respondents a copy of their answers. Confirm content and recipients first. |
+| `forms submissions export <form-id> --type csv\|xlsx\|pdf [--ids a,b] [--recipient-email E] [--include-hidden-fields] [--include-meta-data] [--include-question-descriptions]` | Emails a download link to a team member; never returns the file. With an API key `--recipient-email` is required. |
+
+
+#### Form lifecycle
+
+| Command | Purpose |
+|---|---|
+| `forms create --title <t> [--style single_page\|one_question_at_a_time] [--created-by-email <e>]` | New blank draft form. `--created-by-email` is needed only with an API key. |
+| `forms update <form-id> --title <t>` | Rename. |
+| `forms clone <form-id>` | Copy a form as a new draft. |
+| `forms publish <form-id>` / `forms reset <form-id>` | Publish the draft, or discard draft changes back to the published version. |
+| `forms archive\|unarchive\|enable\|disable\|favorite\|unfavorite <form-id>...` | Bulk state change, one or more ids. `enable`/`disable` replace any deadline or limit. |
+| `forms delete <form-id>` / `forms bulk-delete <form-id>...` | Move forms to the trash. |
+| `forms counts` | Form counts by status. |
+| `forms transfer <form-id>... --to <subdomain>` | Move forms to another workspace. Needs a CLI login (not an API key) and admin rights in the destination. |
+| `forms insights <form-id> [--start-date D --end-date D] [--time-zone Z]` | Form insights (visits, starts, completions) for a date range. Pass both dates or neither. |
+
+Bulk commands are all or nothing: an unknown or forbidden id changes nothing. Question, logic and
+settings edits change the draft; run `forms publish` for respondents to see them.
+
+#### Questions
+
+| Command | Purpose |
+|---|---|
+| `question-kinds list` | Every question kind and the attributes it accepts. Read this before building a question. |
+| `forms questions list\|show <form-id> [<question-id>]` | Read questions. |
+| `forms questions create <form-id> --kind <k> [--position N] [--label] [--description] [--placeholder] [--required] [--json-file <attrs.json>]` | Add one question. |
+| `forms questions bulk-create <form-id> --json-file <file>` | File holds `{"questions":[{"kind":"email","attributes":{"label":"Work email"}}]}`. |
+| `forms questions update <form-id> <question-id> [same attribute flags]` | Change attributes. Options, rows and products are replaced as a list: keep an item by passing its `id`. |
+| `forms questions clone\|delete <form-id> <question-id>` | Copy or remove. |
+| `forms questions reorder <form-id> --ids a,b,c` | Needs every element id of the form, including logo, welcome screen and submit button. |
+
+#### Conditional logic and automation rules
+
+| Command | Purpose |
+|---|---|
+| `forms conditions list\|show\|delete\|clone <form-id> [<id>]` | Show/hide, calculation and thank-you-page conditions. |
+| `forms conditions create\|update <form-id> [<id>] --json-file <file> [--enabled]` | File holds `{"conditions":[...],"actions":[...]}`; both lists are replaced as a whole on update. |
+| `forms conditions reorder <form-id> --ids a,b` | Every condition id in the new order. |
+| `forms automation-rules list <form-id> [--search T]`, `show\|delete\|clone <form-id> <id>`, `reorder <form-id> --ids a,b` | Manage rules. |
+| `forms automation-rules create\|update <form-id> [<id>] --name N [--description] [--status enabled\|disabled] [--performer any\|<role>] [--events submission_created,custom_field_updated] [--delay-value N --delay-unit minutes\|hours\|days] [--json-file <file>]` | Rule `conditions` and `actions` come from the file. Actions email, text and call endpoints on real submissions. `show` never returns API action header values, so resend them on update. |
+
+#### Settings (all under `forms`, all take `<form-id>`)
+
+| Command | Purpose |
+|---|---|
+| `thank-you-pages list\|show\|create\|update\|delete` | `--kind custom_message\|redirect_to_url`, `--message`, `--redirect-url`, `--primary` and more. The primary page cannot be deleted. |
+| `email-notifications show\|update <form-id> <admin\|respondent>` | `--enabled`, `--subject`, `--message`, `--to/--cc/--bcc a,b`, `--reply-to-question-id` (admin), `--reply-to` and `--send-to-question-id` (respondent). |
+| `unique-submission show\|update --method no_track\|cookie_track\|ip_track\|record_track [--question-id]` | Duplicate prevention. |
+| `availability show\|update [--method enable\|disable\|based_on_submission_count\|based_on_time\|based_on_limit_and_time] [--deadline] [--limit] [--closed-message]` | Open, close, deadline, limit. |
+| `access-control show\|update --auth no\|basic\|email\|session\|invited [--password] [--allowed-keywords a,b]` | Gate the form. The password is never returned. |
+| `access-control-invitations list\|create\|delete --emails a,b` | Invitee list for `--auth invited`. No email is sent. |
+| `discount-codes list\|update [--ids a,b]` | Which workspace codes the form accepts. `update` replaces the list; no `--ids` clears it. |
+| `tracking-codes show\|update [--google-analytics] [--google-tag-manager] [--meta-pixel]` | Pass `""` to remove one. |
+| `neeto-chat show\|update --enabled=<bool>` | NeetoChat widget. |
+| `message-templates list [--type email\|sms] [--status active\|inactive]`, `show\|delete <id>`, `create --name --type --body [--subject] [--status]`, `update <id>` | Email and SMS templates. |
+| `theme update --theme-id <id>` | Apply a theme. |
+| `webhooks list\|create --endpoint URL [--events submit] [--secret S]` | Form webhooks. |
+
+#### Sharing
+
+| Command | Purpose |
+|---|---|
+| `forms share show <form-id> [--embed inline\|floating-popup\|element-popup\|iframe]` | Links, QR and embed codes; `--embed` prints one snippet. Links work only on a published form. |
+| `forms public-link update <form-id> [--public-link-id <slug>]` | New public link; the old URL stops working at once, so read `share show` first. |
+| `forms prefilled-links create <form-id> --answer <question-id>=<value>... [--answers-json '<array>'] [--discount-code C]` | Build a prefilled URL. Nothing is saved. Option labels must match exactly. |
+| `forms email-invitations create <form-id> --emails a,b [--subject] [--body] [--button-text] [--reply-to] [--from] [--send-at <iso>]` | Emails real people. Confirm recipients and never retry a success. |
+
+### Workspace resources
+
+| Command | Purpose |
+|---|---|
+| `discount-codes list\|show\|delete`, `create --code C --value V [--kind percentage\|fixed] [--currency] [--expires-at] [--redeems-limit N] [--form-ids a,b]`, `update <id> [same flags]` | Workspace discount codes. On update, `--form-ids` replaces the list and leaving it out keeps it. |
+| `discount-codes forms list` | Forms a code can apply to, with their currency; a fixed code works only on forms in its currency. |
+| `discount-codes redemptions list <id>` / `discount-codes report <id> [--start-date] [--end-date]` | Individual redemptions, or totals. |
+| `templates list [--search] [--category]`, `templates show <id-or-slug>` | Form templates. |
+| `templates use <template-id> [--created-by-email E]` | New draft form from a template. `--created-by-email` only with an API key. |
+| `roles list` | Organization roles, for `team-members --role`. |
+| `audit-logs list [--created-after <iso>] [--created-before <iso>]` | Workspace activity; after is inclusive, before exclusive. |
+| `themes list\|show\|delete`, `themes create --name N [--base-theme-id ID] [--property key=value]... [--json-file]`, `themes update <id>` | System themes cannot change; base a new one on them. Changing a theme changes every form using it. Colours are hex. |
+| `webhooks list\|show\|delete`, `webhooks create --endpoint URL [--events submit] [--secret S]` | Workspace webhooks. The secret is never shown again. |
+| `ip-restrictions show` | IP restriction status and allowed ranges. |
+| `custom-domains list\|show\|create\|delete <hostname>` | After `create`, add a CNAME to `dns_target` (or an A record to `dns_target_ip` for a root domain) and poll `show` until `active`. |
+| `api-keys list [--search]`, `api-keys delete <id>` | `delete` revokes a key and cannot be undone; CLI login only. Tokens are never printed. |
+
 ### `team-members`
 
 | Command | Purpose |
@@ -178,6 +278,8 @@ question order. A question the person skipped has no entry, so to build columns,
 | `team-members create --emails <a,b> --role <name> [--invited-by <admin-email>] [--send-invitation-email=false]` | Invite people. Both `--emails` and `--role` are required. |
 | `team-members update <id> [--email] [--first-name] [--last-name] [--time-zone] [--role]` | Change only the flags passed. |
 | `team-members delete <id>` | Deactivate a member. |
+| `deactivated-team-members list [--page N] [--page-size N]` | Deactivated members. |
+| `deactivated-team-members reactivate <id>` | Restore a deactivated member. |
 
 A member record carries `id`, `email`, `first_name`, `last_name`, `time_zone`,
 `profile_image_url`, `active` and `organization_role`.
