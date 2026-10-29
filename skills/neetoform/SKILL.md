@@ -302,7 +302,8 @@ Full reference: https://apidocs.neetoform.com/cli-reference/overview
 
 1. Get a `signed_id`: `neetoform images upload ./bg.png` (local file) or `neetoform images create --url https://example.com/bg.png`.
 2. Attach it: `neetoform themes update <theme-id> --background-image <signed_id>` (also on `themes create`).
-3. Tune it: `--property background_image_position="top left" --property background=-40`.
+3. Tune it: `--property background_image_position="top left" --property background=-40`. `background_image_position` is one of center, top left, top center, top right, center left, center right, bottom left, bottom right or bottom center; `background` is the overlay, an integer from -100 (darker) to 100 (lighter); `is_dominant_background_color_enabled` (true or false) needs `dominant_color` (hex); `is_content_background_enabled` (true or false) with `content_background_color` (hex, alpha allowed).
 4. Remove it: `neetoform themes update <theme-id> --remove-background-image`.
+5. Scripting: `images upload` and `images create` with `--quiet` print only the signed_id.
 
 The `signed_id` is the only value to carry between steps. Never print or log an upload address.

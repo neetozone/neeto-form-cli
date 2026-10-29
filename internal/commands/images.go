@@ -129,8 +129,7 @@ var imagesUploadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		printActionResult(result, nil)
-		return nil
+		return printImage(result)
 	},
 }
 
@@ -139,8 +138,27 @@ var imagesCreateCmd = &cobra.Command{
 	Short: "Store an image from a public https URL and print its signed_id",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return sendAndPrint(cmd, http.MethodPost, apiPath("images"), flagValues(cmd, "url", "filename"), printActionResult)
+		data, err := send(cmd, http.MethodPost, apiPath("images"), flagValues(cmd, "url", "filename"))
+		if err != nil {
+			return err
+		}
+		return printImage(data)
 	},
+}
+
+func printImage(data json.RawMessage) error {
+	if !app.Printer.Quiet {
+		printActionResult(data, nil)
+		return nil
+	}
+	var image struct {
+		SignedID string `json:"signed_id"`
+	}
+	if err := json.Unmarshal(data, &image); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintln(app.Printer.Out, image.SignedID)
+	return err
 }
 
 func init() {

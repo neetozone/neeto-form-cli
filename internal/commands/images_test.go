@@ -108,3 +108,14 @@ func TestImagesCreateSendsUrlAndFilename(t *testing.T) {
 		t.Errorf("output = %q", out)
 	}
 }
+
+func TestImagesCreateQuietPrintsOnlyTheSignedID(t *testing.T) {
+	_, out, err := runCLI(t, `{"signed_id":"sig9","filename":"hero.png","content_type":"image/png","byte_size":10}`,
+		"images", "create", "--url", "https://example.com/hero.png", "--quiet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(out) != "sig9" {
+		t.Errorf("output = %q, want only the signed_id", out)
+	}
+}
