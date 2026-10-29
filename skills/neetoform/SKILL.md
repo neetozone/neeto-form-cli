@@ -221,7 +221,7 @@ settings edits change the draft; run `forms publish` for respondents to see them
 | Command | Purpose |
 |---|---|
 | `forms conditions list\|show\|delete\|clone <form-id> [<id>]` | Show/hide, calculation and thank-you-page conditions. |
-| `forms conditions create\|update <form-id> [<id>] --json-file <file> [--enabled]` | File holds `{"conditions":{"join_type":"and","items":[...]},"actions":{"items":[...]}}`, both objects, not arrays; each is replaced as a whole on update. |
+| `forms conditions create\|update <form-id> [<id>] --json-file <file> [--enabled]` | File holds `{"conditions":{"join_type":"and","items":[...]},"actions":{"items":[...]}}`, both objects, not arrays; each is replaced as a whole on update. A choice question's `value` is the option's `alt_id` from `forms questions show`. |
 | `forms conditions reorder <form-id> --ids a,b` | Every condition id in the new order. |
 | `forms automation-rules list <form-id> [--search T]`, `show\|delete\|clone <form-id> <id>`, `reorder <form-id> --ids a,b` | Manage rules. |
 | `forms automation-rules create\|update <form-id> [<id>] --name N [--description] [--status enabled\|disabled] [--performer any\|<role>] [--events submission_created,custom_field_updated] [--delay-value N --delay-unit minutes\|hours\|days] [--json-file <file>]` | Rule `conditions` and `actions` come from the file. Actions email, text and call endpoints on real submissions. `show` never returns API action header values, so resend them on update. |
