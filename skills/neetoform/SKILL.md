@@ -263,7 +263,7 @@ settings edits change the draft; run `forms publish` for respondents to see them
 | `templates use <template-id> [--created-by-email E]` | New draft form from a template. `--created-by-email` only with an API key. |
 | `roles list` | Organization roles, for `team-members --role`. |
 | `audit-logs list [--created-after <iso>] [--created-before <iso>]` | Workspace activity; after is inclusive, before exclusive. |
-| `themes list\|show\|delete`, `themes create --name N [--base-theme-id ID] [--property key=value]... [--background-image SIGNED_ID] [--json-file]`, `themes update <id> [--background-image SIGNED_ID \| --remove-background-image]` | System themes cannot change; base a new one on them. Changing a theme changes every form using it. Colours are hex. Background properties: `is_content_background_enabled` and `is_dominant_background_color_enabled` (`true`/`false`), `content_background_color` and `dominant_color` (hex), `background_image_position` (`center`, `top left`, `top center`, `top right`, `center left`, `center right`, `bottom left`, `bottom right`, `bottom center`), `background` (image overlay, integer -100 to 100, e.g. `--property background=-40`). |
+| `themes list\|show\|delete`, `themes create --name N [--base-theme-id ID] [--property key=value]... [--background-image SIGNED_ID] [--json-file]`, `themes update <id> [--background-image SIGNED_ID \| --remove-background-image]` | System themes cannot change; base a new one on them. Changing a theme changes every form using it. Colours are hex. Custom CSS: `custom_css` (Pro plan; empty removes it). Background properties: `is_content_background_enabled` and `is_dominant_background_color_enabled` (`true`/`false`), `content_background_color` and `dominant_color` (hex), `background_image_position` (`center`, `top left`, `top center`, `top right`, `center left`, `center right`, `bottom left`, `bottom right`, `bottom center`), `background` (image overlay, integer -100 to 100, e.g. `--property background=-40`). |
 | `images upload <path> [--content-type T]` | Upload a LOCAL image (png, jpeg, gif or svg, at most 1 MB) and print its `signed_id`. It reserves the upload, then sends the bytes to the storage address itself; that address is a credential and is never printed. Checks the file before any request. |
 | `images create --url <https-url> [--filename N]` | Store an image from a public https URL and print its `signed_id`. Use `images upload` for a local file. |
 | `webhooks list\|show\|delete`, `webhooks create --endpoint URL [--events submit] [--secret S]` | Workspace webhooks. The secret is never shown again. |
@@ -301,6 +301,13 @@ Full reference: https://apidocs.neetoform.com/cli-reference/overview
 ### See what a form looks like
 
 `neetoform forms outline <form-id> [--draft]` prints a compact text outline of the form as respondents see it: the theme (font, colours, background image, card, buttons), every element in order with its kind, required mark, placeholder and options, the logic rules in plain words, and the thank-you page. Read it after building or changing a form to check the result; pass `--draft` until the form is published.
+
+### Images on form elements, custom CSS and defaults
+
+- Logo, heading and welcome screen take an image: get a `signed_id` with `images upload` or `images create`, then set `attributes.image` to it with `forms questions update <form-id> <question-id> --json-file <file>` (or in `create`/`bulk-create`); `null` removes it. `forms questions show` reports `image_url`.
+- `--property custom_css=...` on `themes create|update` adds CSS inside the form (Pro plan only); an empty value removes it. Rules are not scoped for you: start every selector with `.neeto-form-eui`. Each element line of `forms outline` ends with that element's `[id="..."]` attribute selector; copy it exactly as written (do not turn it into `#id`, which breaks when the id starts with a digit). Run `forms outline` again after a change.
+- New dropdowns are single select, like in the builder; pass `is_multi_select: true` for multi-select. New questions are optional unless you pass `--required` on `forms questions create` (or `"is_required": true` in a JSON file). These defaults apply only when a question is created; `update` changes only the attributes you send.
+- `question-kinds list` carries a `description` on attributes with surprises: the phone field shows its own country code, `heading_size` has no visible effect, and terms links respondents open are the `<a href>` tags inside the terms `label`.
 
 ### Theme background image flow
 
