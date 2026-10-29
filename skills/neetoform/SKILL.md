@@ -298,6 +298,10 @@ credential.
 
 Full reference: https://apidocs.neetoform.com/cli-reference/overview
 
+### See what a form looks like
+
+`neetoform forms outline <form-id> [--draft]` prints a compact text outline of the form as respondents see it: the theme (font, colours, background image, card, buttons), every element in order with its kind, required mark, placeholder and options, the logic rules in plain words, and the thank-you page. Read it after building or changing a form to check the result; pass `--draft` until the form is published.
+
 ### Theme background image flow
 
 1. Get a `signed_id`: `neetoform images upload ./bg.png` (local file) or `neetoform images create --url https://example.com/bg.png`.
