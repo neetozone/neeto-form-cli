@@ -40,7 +40,13 @@ func printActionResult(data json.RawMessage, breadcrumbs []output.Breadcrumb) {
 	app.PrintActionResult(data, breadcrumbs)
 }
 
-func paginationParams(cmd *cobra.Command) url.Values { return app.PaginationParams(cmd) }
+func paginationParams(cmd *cobra.Command) url.Values {
+	params := app.PaginationParams(cmd)
+	if params.Has("page_size") && !params.Has("page") {
+		params.Set("page", "1")
+	}
+	return params
+}
 
 func addPaginationFlags(cmd *cobra.Command) { cli.AddPaginationFlags(0, cmd) }
 

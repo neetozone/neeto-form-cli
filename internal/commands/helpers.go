@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -87,9 +88,21 @@ func saveCmd(use, short string, nargs int, method string, path argsPath, render 
 			if err != nil {
 				return err
 			}
+			if hasEmptyResource(body) {
+				return errors.New("Nothing to send. Pass --json-file or set at least one flag; see --help.")
+			}
 			return sendAndPrint(cmd, method, path(args), body, render)
 		},
 	}
+}
+
+func hasEmptyResource(body map[string]any) bool {
+	for _, value := range body {
+		if resource, ok := value.(map[string]any); ok && len(resource) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func deleteCmd(use, short string, nargs int, path argsPath, message string) *cobra.Command {
