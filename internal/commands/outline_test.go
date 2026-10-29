@@ -7,7 +7,7 @@ import (
 
 const outlineResponse = `{"outline":"Riverside Roasters (published, single page)\n1. Work email (email, required)"}`
 
-func TestFormsOutlinePrintsTheOutlineText(t *testing.T) {
+func TestFormsOutlinePrintsTheOutlineInTheStandardEnvelope(t *testing.T) {
 	got, out, err := runCLI(t, outlineResponse, "forms", "outline", "form-1")
 	if err != nil {
 		t.Fatal(err)
@@ -16,13 +16,15 @@ func TestFormsOutlinePrintsTheOutlineText(t *testing.T) {
 		t.Errorf("request = %s %s %v", got.method, got.path, got.query)
 	}
 	var printed struct {
-		Message string `json:"message"`
+		Data struct {
+			Outline string `json:"outline"`
+		} `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(out), &printed); err != nil {
 		t.Fatalf("output = %q: %v", out, err)
 	}
-	if printed.Message != "Riverside Roasters (published, single page)\n1. Work email (email, required)" {
-		t.Errorf("message = %q", printed.Message)
+	if printed.Data.Outline != "Riverside Roasters (published, single page)\n1. Work email (email, required)" {
+		t.Errorf("outline = %q", printed.Data.Outline)
 	}
 }
 

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"net/url"
 
 	"github.com/spf13/cobra"
@@ -20,13 +19,7 @@ var formsOutlineCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		var outline struct {
-			Outline string `json:"outline"`
-		}
-		if err := json.Unmarshal(data, &outline); err != nil {
-			return err
-		}
-		printMessage(outline.Outline)
+		printResource(data, nil)
 		return nil
 	},
 }
