@@ -88,7 +88,7 @@ func saveCmd(use, short string, nargs int, method string, path argsPath, render 
 			if err != nil {
 				return err
 			}
-			if hasEmptyResource(body) {
+			if hasNothingToSend(body) {
 				return errors.New("Nothing to send. Pass --json-file or set at least one flag; see --help.")
 			}
 			return sendAndPrint(cmd, method, path(args), body, render)
@@ -96,13 +96,13 @@ func saveCmd(use, short string, nargs int, method string, path argsPath, render 
 	}
 }
 
-func hasEmptyResource(body map[string]any) bool {
+func hasNothingToSend(body map[string]any) bool {
 	for _, value := range body {
-		if resource, ok := value.(map[string]any); ok && len(resource) == 0 {
-			return true
+		if resource, ok := value.(map[string]any); !ok || len(resource) > 0 {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func deleteCmd(use, short string, nargs int, path argsPath, message string) *cobra.Command {

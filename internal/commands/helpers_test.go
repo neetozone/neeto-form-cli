@@ -11,3 +11,15 @@ func TestSaveWithNothingToSendIsRefusedBeforeAnyRequest(t *testing.T) {
 		t.Errorf("request was made to %q", got.path)
 	}
 }
+
+func TestBodyWithNoFieldsHasNothingToSend(t *testing.T) {
+	if !hasNothingToSend(map[string]any{}) {
+		t.Error("an empty body was sent")
+	}
+}
+
+func TestBodyWithAFilledResourceAndAnEmptyExtraIsSent(t *testing.T) {
+	if hasNothingToSend(map[string]any{"theme": map[string]any{"name": "Brand"}, "meta": map[string]any{}}) {
+		t.Error("a body with a filled resource was refused")
+	}
+}
