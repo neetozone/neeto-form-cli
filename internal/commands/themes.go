@@ -49,7 +49,7 @@ var formThemeUpdateCmd = &cobra.Command{
 }
 
 func init() {
-	propertyHelp := "Theme property as key=value, repeatable; e.g. --property background_color=#ffffff. Editable keys: eui_font_family, question_color, background_color, button_text_color, button_background_color, button_border_radius, welcome_text_alignment, questions_text_alignment, thank_you_text_alignment (left, center or right)"
+	propertyHelp := "Theme property as key=value, repeatable; e.g. --property background_color=#ffffff. Editable keys: eui_font_family, question_color, answer_color, answer_text_color, background_color, button_text_color, button_background_color, button_border_radius, welcome_text_alignment, questions_text_alignment, thank_you_text_alignment (left, center or right)"
 	jsonFileHelp := "Path to a JSON file with the theme fields; e.g. {\"name\": \"Brand\", \"properties\": {\"question_color\": \"#123456\"}}. Flags override the file"
 
 	themesCreateCmd.Flags().String("name", "", "Theme name")
