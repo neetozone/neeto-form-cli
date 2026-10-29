@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -63,5 +64,40 @@ func TestFormThemeUpdateAppliesTheme(t *testing.T) {
 	}
 	if got.method != "PUT" || got.path != "/api/external/v2/forms/f1/theme" || got.body["theme_id"] != "t1" {
 		t.Errorf("request = %s %s %v", got.method, got.path, got.body)
+	}
+}
+
+func TestThemesUpdateSendsBackgroundImageAndProperties(t *testing.T) {
+	got, _, err := runCLI(t, `{"theme":{"id":"t1"}}`, "themes", "update", "t1", "--background-image", "sig1",
+		"--property", "background=-40", "--property", "is_content_background_enabled=true")
+	if err != nil {
+		t.Fatal(err)
+	}
+	theme := got.body["theme"].(map[string]any)
+	properties := theme["properties"].(map[string]any)
+	if theme["background_image"] != "sig1" || properties["background"] != "-40" || properties["is_content_background_enabled"] != "true" {
+		t.Errorf("theme = %v", theme)
+	}
+}
+
+func TestThemesUpdateRemoveBackgroundImageSendsNull(t *testing.T) {
+	got, _, err := runCLI(t, `{"theme":{"id":"t1"}}`, "themes", "update", "t1", "--remove-background-image")
+	if err != nil {
+		t.Fatal(err)
+	}
+	theme := got.body["theme"].(map[string]any)
+	value, present := theme["background_image"]
+	if !present || value != nil {
+		t.Errorf("theme = %v", theme)
+	}
+}
+
+func TestThemesUpdateRejectsBackgroundImageWithRemoval(t *testing.T) {
+	got, _, err := runCLI(t, `{}`, "themes", "update", "t1", "--background-image", "sig1", "--remove-background-image")
+	if err == nil || !strings.Contains(err.Error(), "not both") {
+		t.Fatalf("error = %v", err)
+	}
+	if got.path != "" {
+		t.Errorf("request was sent to %q", got.path)
 	}
 }
