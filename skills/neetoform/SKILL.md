@@ -302,6 +302,13 @@ Full reference: https://apidocs.neetoform.com/cli-reference/overview
 
 `neetoform forms outline <form-id> [--draft]` prints a compact text outline of the form as respondents see it: the theme (font, colours, background image, card, buttons), every element in order with its kind, required mark, placeholder and options, the logic rules in plain words, and the thank-you page. Read it after building or changing a form to check the result; pass `--draft` until the form is published.
 
+### Images on form elements, custom CSS and defaults
+
+- Logo, heading and welcome screen take an image: get a `signed_id` with `images upload` or `images create`, then set `attributes.image` to it with `forms questions update <form-id> <question-id> --json-file <file>` (or in `create`/`bulk-create`); `null` removes it. `forms questions show` reports `image_url`.
+- `--property custom_css=...` on `themes create|update` adds CSS inside the form (Pro plan only). Rules are not scoped for you: start every selector with `.neeto-form-eui`, and take class names and each element's `[id="..."]` selector from the "CSS hooks" block of `forms outline`. Run `forms outline` again after a change.
+- New dropdowns are single select, like in the builder; pass `is_multi_select: true` for multi-select. New questions are optional unless you pass `is_required: true`.
+- `question-kinds list` carries a `description` on attributes with surprises: the phone field shows its own country code, `heading_size` has no visible effect, and terms links respondents open are the `<a href>` tags inside the terms `label`.
+
 ### Theme background image flow
 
 1. Get a `signed_id`: `neetoform images upload ./bg.png` (local file) or `neetoform images create --url https://example.com/bg.png`.
