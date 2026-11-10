@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"maps"
@@ -10,13 +10,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/neetozone/neeto-cli-commons/output"
+	"github.com/neetozone/neeto-cli-commons/v2/output"
 	"github.com/spf13/cobra"
 )
 
 type argsPath func(args []string) string
 
-type printer func(data json.RawMessage, breadcrumbs []output.Breadcrumb)
+type printer func(data jsontext.Value, breadcrumbs []output.Breadcrumb)
 
 type keyValue struct{ key, value string }
 
@@ -234,7 +234,7 @@ func jsonFileWithFlags(cmd *cobra.Command, specs ...string) (map[string]any, err
 	return body, nil
 }
 
-func fetch(cmd *cobra.Command, path string, params url.Values) (json.RawMessage, error) {
+func fetch(cmd *cobra.Command, path string, params url.Values) (jsontext.Value, error) {
 	c, err := getClient(cmd)
 	if err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func fetch(cmd *cobra.Command, path string, params url.Values) (json.RawMessage,
 	return c.Get(path, params)
 }
 
-func send(cmd *cobra.Command, method, path string, body any) (json.RawMessage, error) {
+func send(cmd *cobra.Command, method, path string, body any) (jsontext.Value, error) {
 	c, err := getClient(cmd)
 	if err != nil {
 		return nil, err

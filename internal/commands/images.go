@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/neetozone/neeto-cli-commons/v2/output"
 	"github.com/spf13/cobra"
 )
 
@@ -125,7 +127,7 @@ var imagesUploadCmd = &cobra.Command{
 			"filename":     upload.Filename,
 			"content_type": upload.ContentType,
 			"byte_size":    upload.ByteSize,
-		})
+		}, output.JSONOptions)
 		if err != nil {
 			return err
 		}
@@ -146,7 +148,7 @@ var imagesCreateCmd = &cobra.Command{
 	},
 }
 
-func printImage(data json.RawMessage) error {
+func printImage(data jsontext.Value) error {
 	if !app.Printer.Quiet {
 		printActionResult(data, nil)
 		return nil
