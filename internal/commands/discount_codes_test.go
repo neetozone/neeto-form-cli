@@ -1,13 +1,15 @@
 package commands
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
+
+	"github.com/neetozone/neeto-cli-commons/v2/output"
 	"testing"
 )
 
 func discountCodesJSON(t *testing.T, v any) string {
 	t.Helper()
-	out, err := json.Marshal(v)
+	out, err := json.Marshal(v, output.JSONOptions)
 	if err != nil {
 		t.Fatal(err)
 	}

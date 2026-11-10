@@ -2,7 +2,7 @@ package commands
 
 import (
 	"bytes"
-	"encoding/json"
+	json "encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/neetozone/neeto-cli-commons/cli"
-	"github.com/neetozone/neeto-cli-commons/config"
+	"github.com/neetozone/neeto-cli-commons/v2/cli"
+	"github.com/neetozone/neeto-cli-commons/v2/config"
 	product "github.com/neetozone/neeto-form-cli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -60,7 +60,7 @@ func runCLI(t *testing.T, response string, args ...string) (recordedRequest, str
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got = recordedRequest{method: r.Method, path: r.URL.Path, escaped: r.URL.EscapedPath(), query: r.URL.Query()}
 		if r.Body != nil {
-			_ = json.NewDecoder(r.Body).Decode(&got.body)
+			_ = json.UnmarshalRead(r.Body, &got.body)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(response))
